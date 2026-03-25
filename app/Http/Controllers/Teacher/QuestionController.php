@@ -21,39 +21,156 @@ class QuestionController extends Controller
     }
 
     // store function
+    // public function store(Request $request)
+    // {
+    //     $request->validate([
+    //         'subject_id' => 'required',
+    //         'class_level_id' => 'required',
+    //         'question_text' => 'required',
+    //         'correct_answer' => 'required',
+    //         'difficulty' => 'required',
+    //         'time_limit'
+    //     ]);
+
+    //     $teacher = auth()->user()->teacherDetail;
+
+    //     $question = Question::create([
+    //         'subject_id' => $request->subject_id,
+    //         'class_level_id' => $request->class_level_id,
+    //         'school_id' => $teacher->school_id,
+    //         'question_type' => $request->question_type,
+    //         'question_text' => $request->question_text,
+    //         'difficulty' => $request->difficlty,
+    //         'time_limit' => $request->time_limit,
+    //         'correct_answer' => $request->correct_answer,
+    //         'created_by' => auth()->id(),
+    //         'source' => 'internal'
+    //     ]);
+
+    //     if($request->question_type === 'objective'){
+    //         Option::create(['question_id'=>$question->id,'option_label'=>'A','option_text'=>$request->option_a]);
+    //         Option::create(['question_id'=>$question->id,'option_label'=>'B','option_text'=>$request->option_b]);
+    //         Option::create(['question_id'=>$question->id,'option_label'=>'C','option_text'=>$request->option_c]);
+    //         Option::create(['question_id'=>$question->id,'option_label'=>'D','option_text'=>$request->option_d]);
+    //     }
+
+    //     return back()->with('success','Question added successfully');
+    // }
+
     public function store(Request $request)
     {
+        // Validate the request
         $request->validate([
-            'subject_id' => 'required',
-            'class_level_id' => 'required',
-            'question_text' => 'required',
-            'correct_answer' => 'required',
-            'difficulty' => 'required'
+            'subject_id' => 'required|exists:subjects,id',
+            'questions' => 'required|array|min:1',
+            'questions.*.question_type' => 'required|in:objective,fill_in_the_gap',
+            'questions.*.question_text' => 'required|string',
         ]);
 
         $teacher = auth()->user()->teacherDetail;
+        $successCount = 0;
+        $failedCount = 0;
 
-        $question = Question::create([
-            'subject_id' => $request->subject_id,
-            'class_level_id' => $request->class_level_id,
-            'school_id' => $teacher->school_id,
-            'question_type' => $request->question_type,
-            'question_text' => $request->question_text,
-            
-            'correct_answer' => $request->correct_answer,
-            'created_by' => auth()->id(),
-            'source' => 'internal'
-        ]);
+        foreach($request->questions as $index => $q) {
+            try {
+                // Determine question type
+                $questionType = $q['question_type'];
+                
+                // Validate based on question type
+                if ($questionType === 'objective') {
+                    // Validate objective fields
+                    if (
+                        !isset($q['option_a'], $q['option_b'], $q['option_c'], $q['option_d'], $q['correct_answer']) ||
+                        trim($q['option_a']) === '' ||
+                        trim($q['option_b']) === '' ||
+                        trim($q['option_c']) === '' ||
+                        trim($q['option_d']) === '' ||
+                        trim($q['correct_answer']) === ''
+                    )  
+                    {
+                        throw new \Exception("Question " . ($index + 1) . " is missing required fields");
+                    }
+                } elseif ($questionType === 'fill_in_the_gap') {
+                    // Validate fill in the gap fields
+                    if (!isset($q['expected_answer']) || trim($q['expected_answer']) === '') {
+                        throw new \Exception("Question " . ($index + 1) . " is missing expected answer");
+                    }
+                }
+                
+                // Prepare base question data
+                $questionData = [
+                    'subject_id' => $request->subject_id,
+                    'class_level_id' => $teacher->class_id ?? null,
+                    'school_id' => $teacher->school_id,
+                    'question_type' => $questionType,
+                    'question_text' => $q['question_text'],
+                    'created_by' => auth()->id(),
+                    'source' => 'internal'
+                ];
+                
+                // Handle different question types
+                if ($questionType === 'objective') {
+                    $questionData['correct_answer'] = $q['correct_answer'];
+                    
+                    $question = Question::create($questionData);
+                    
+                    // Insert options
+                    Option::insert([
+                        [
+                            'question_id' => $question->id, 
+                            'option_label' => 'A', 
+                            'option_text' => $q['option_a']
+                        ],
+                        [
+                            'question_id' => $question->id, 
+                            'option_label' => 'B', 
+                            'option_text' => $q['option_b']
+                        ],
+                        [
+                            'question_id' => $question->id, 
+                            'option_label' => 'C', 
+                            'option_text' => $q['option_c']
+                        ],
+                        [
+                            'question_id' => $question->id, 
+                            'option_label' => 'D', 
+                            'option_text' => $q['option_d']
+                        ],
+                    ]);
+                    
+                    $successCount++;
+                    
+                } elseif ($questionType === 'fill_in_the_gap') {
 
-        if($request->question_type === 'objective'){
+                    $expectedAnswer = $q['expected_answer'] ?? null;
 
-            Option::create(['question_id'=>$question->id,'option_label'=>'A','option_text'=>$request->option_a]);
-            Option::create(['question_id'=>$question->id,'option_label'=>'B','option_text'=>$request->option_b]);
-            Option::create(['question_id'=>$question->id,'option_label'=>'C','option_text'=>$request->option_c]);
-            Option::create(['question_id'=>$question->id,'option_label'=>'D','option_text'=>$request->option_d]);
+                    if (!$expectedAnswer || trim($expectedAnswer) === '') {
+                        throw new \Exception("Question " . ($index + 1) . " is missing expected answer");
+                    }
+
+                    $questionData['correct_answer'] = $expectedAnswer;
+
+                    Question::create($questionData);
+
+                    $successCount++;
+                }
+                
+            } catch (\Exception $e) {
+                $failedCount++;
+                \Log::error('Failed to save question: ' . $e->getMessage());
+            }
         }
 
-        return back()->with('success','Question added successfully');
+        $message = "$successCount questions added successfully.";
+        if ($failedCount > 0) {
+            $message .= " $failedCount questions failed.";
+        }
+
+        if ($failedCount > 0 && $successCount === 0) {
+            return back()->with('error', $message);
+        }
+        
+        return back()->with('success', $message);
     }
 
 }

@@ -151,10 +151,10 @@ Route::middleware('auth')->group(function () {
 });
 
 // teacher route
-// Route::middleware(['auth'])->prefix('school')->group(function(){
-//     Route::get('/teacher/create',[TeacherController::class,'create'])->name('school.teacher.create');
-//     Route::post('/teacher/store',[TeacherController::class,'store'])->name('school.teacher.store');
-// });
+Route::middleware(['auth'])->prefix('school')->group(function(){
+    Route::get('/teacher/create',[TeacherController::class,'create'])->name('school.teacher.create');
+    Route::post('/teacher/store',[TeacherController::class,'store'])->name('school.teacher.store');
+});
 
 // student route
 Route::middleware(['auth'])->prefix('school')->group(function(){
@@ -173,11 +173,11 @@ Route::get('/payment/callback', [PaymentController::class, 'callback'])->name('p
 
 Route::middleware(['auth'])->prefix('teacher')->group(function(){
 
-    Route::get('/questions/create',[QuestionController::class,'create'])
-    ->name('teacher.questions.create');
+    // Route::get('/questions/create',[QuestionController::class,'create'])
+    // ->name('teacher.questions.create');
 
-    Route::post('/questions/store',[QuestionController::class,'store'])
-    ->name('teacher.questions.store');
+    // Route::post('/questions/store',[QuestionController::class,'store'])
+    // ->name('teacher.questions.store');
 
 });
 
