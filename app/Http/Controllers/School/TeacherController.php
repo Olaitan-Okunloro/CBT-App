@@ -11,14 +11,46 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\UserCreatedMail;
+use App\Models\StudentDetail;
+use App\Models\ExamAttempt;
+use App\Models\Question;
 
 class TeacherController extends Controller
 {
 
     // TeacherController  
+    // public function dashboard()
+    // {
+    //     return view('dashboard.teacher', ['user' => auth()->user()]);
+    // }
+
     public function dashboard()
     {
-        return view('dashboard.teacher', ['user' => auth()->user()]);
+        $teacher = auth()->user();
+        
+        // Get students in teacher's class
+        $students = StudentDetail::where('class_id', $teacher->teacherDetail->class_id)
+            ->pluck('user_id');
+        
+        // Get all attempts from these students with relationships
+        $attempts = ExamAttempt::whereIn('user_id', $students)
+            ->with(['user', 'exam'])
+            ->latest()
+            ->get();
+        
+        // Get recent attempts (last 10)
+        $recentAttempts = $attempts->take(10);
+        
+        // Get teacher's questions count
+        $questionsCount = Question::where('created_by', $teacher->id)->count();
+        
+        return view('dashboard.teacher', [
+            'studentsCount' => $students->count(),
+            'avgScore' => $attempts->avg('score'),
+            'totalAttempts' => $attempts->count(),
+            'questionsCount' => $questionsCount,
+            'recentAttempts' => $recentAttempts
+        ]);
     }
 
     /**

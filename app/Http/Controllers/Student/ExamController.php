@@ -45,7 +45,7 @@ class ExamController extends Controller
             'total' => $questions->count(),
             'started_at' => now()
         ]);
-
+        
         session([
             'exam_questions' => $questions,
             'attempt_id' => $attempt->id,

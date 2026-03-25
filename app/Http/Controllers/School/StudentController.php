@@ -15,14 +15,39 @@ use App\Mail\UserCreatedMail;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\StudentsImport;
 use App\Exports\StudentsExport;
+use App\Models\ExamAttempt;
 
 class StudentController extends Controller
 {
 
     // StudentController
+    // public function dashboard()
+    // {
+    //     return view('dashboard.student', ['user' => auth()->user()]);
+    // }
+
     public function dashboard()
     {
-        return view('dashboard.student', ['user' => auth()->user()]);
+        $user = auth()->user();
+
+        $attempts = ExamAttempt::where('user_id', $user->id)->get();
+
+        $subjectStats = ExamAttempt::with('exam.subject')
+            ->where('user_id', $user->id)
+            ->get()
+            ->groupBy('exam.subject.name');
+
+        $totalExams = $attempts->count();
+        $averageScore = $attempts->avg('score');
+        $highestScore = $attempts->max('score');
+
+        return view('dashboard.student', ['user' => auth()->user()], compact(
+            'totalExams',
+            'averageScore',
+            'highestScore',
+            'attempts',
+            'subjectStats'
+        ));
     }
     
     // Show form
