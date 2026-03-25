@@ -12,6 +12,7 @@ use App\Models\Option;
 
 class QuestionController extends Controller
 {
+    
     // create questions
     public function create()
     {
@@ -20,45 +21,10 @@ class QuestionController extends Controller
         return view('teacher.questions.create', compact('subjects','classes'));
     }
 
-    // store function
-    // public function store(Request $request)
-    // {
-    //     $request->validate([
-    //         'subject_id' => 'required',
-    //         'class_level_id' => 'required',
-    //         'question_text' => 'required',
-    //         'correct_answer' => 'required',
-    //         'difficulty' => 'required',
-    //         'time_limit'
-    //     ]);
-
-    //     $teacher = auth()->user()->teacherDetail;
-
-    //     $question = Question::create([
-    //         'subject_id' => $request->subject_id,
-    //         'class_level_id' => $request->class_level_id,
-    //         'school_id' => $teacher->school_id,
-    //         'question_type' => $request->question_type,
-    //         'question_text' => $request->question_text,
-    //         'difficulty' => $request->difficlty,
-    //         'time_limit' => $request->time_limit,
-    //         'correct_answer' => $request->correct_answer,
-    //         'created_by' => auth()->id(),
-    //         'source' => 'internal'
-    //     ]);
-
-    //     if($request->question_type === 'objective'){
-    //         Option::create(['question_id'=>$question->id,'option_label'=>'A','option_text'=>$request->option_a]);
-    //         Option::create(['question_id'=>$question->id,'option_label'=>'B','option_text'=>$request->option_b]);
-    //         Option::create(['question_id'=>$question->id,'option_label'=>'C','option_text'=>$request->option_c]);
-    //         Option::create(['question_id'=>$question->id,'option_label'=>'D','option_text'=>$request->option_d]);
-    //     }
-
-    //     return back()->with('success','Question added successfully');
-    // }
-
+    // store 
     public function store(Request $request)
     {
+        // dd($request->questions);
         // Validate the request
         $request->validate([
             'subject_id' => 'required|exists:subjects,id',
@@ -156,8 +122,7 @@ class QuestionController extends Controller
                 }
                 
             } catch (\Exception $e) {
-                $failedCount++;
-                \Log::error('Failed to save question: ' . $e->getMessage());
+                dd($e->getMessage());
             }
         }
 
