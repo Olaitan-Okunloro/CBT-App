@@ -22,5 +22,10 @@ class Question extends Model
         'school_id'
     ];
 
+    public function options()
+    {
+        return $this->hasMany(\App\Models\Option::class);
+    }
+
 }
 

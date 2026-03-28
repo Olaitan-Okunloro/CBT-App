@@ -4,7 +4,7 @@
 
 <div class="container">
 
-<h4>Available Exams</h4>
+<h4 style="color:white">Available Exams</h4>
 
 <div class="row">
 

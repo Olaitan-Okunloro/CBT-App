@@ -19,13 +19,6 @@ use App\Models\ExamAttempt;
 
 class StudentController extends Controller
 {
-
-    // StudentController
-    // public function dashboard()
-    // {
-    //     return view('dashboard.student', ['user' => auth()->user()]);
-    // }
-
     public function dashboard()
     {
         $user = auth()->user();

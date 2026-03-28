@@ -120,7 +120,7 @@
                             <thead class="table-dark">
                                 <tr>
                                     <th>Exam</th>
-                                    <th>Subject</th>
+                                    <!-- <th>Subject</th> -->
                                     <th>Score</th>
                                     <th>Date</th>
                                 </tr>
@@ -129,7 +129,7 @@
                                 @foreach($attempts as $attempt)
                                 <tr>
                                     <td>{{ $attempt->exam->title ?? 'N/A' }}</td>
-                                    <td>{{ $attempt->exam->subject ?? 'N/A' }}</td>
+                                    <!-- <td>{{ $attempt->exam->subject ?? 'N/A' }}</td> -->
                                     <td>
                                         <span class="badge bg-{{ $attempt->score >= 70 ? 'success' : ($attempt->score >= 50 ? 'warning' : 'danger') }}">
                                             {{ $attempt->score }}%

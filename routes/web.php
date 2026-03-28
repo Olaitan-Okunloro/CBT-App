@@ -83,16 +83,28 @@ Route::get('/exam/question', [ExamController::class, 'question'])
 Route::post('/exam/answer', [ExamController::class, 'answer'])
     ->name('student.exam.answer');
 
+Route::get('/exam/result/{id}', [\App\Http\Controllers\Student\ExamController::class, 'result'])
+    ->name('student.exam.result');    
+
 // auto submition route
 Route::get('/exam/submit-auto', [ExamController::class, 'submitAuto'])
     ->name('student.exam.submit.auto');
     
-// questions upload route
+// questions creation route
 Route::get('/teacher/questions/create', [QuestionController::class, 'create'])
     ->name('teacher.questions.create');
 
+// questions upload route    
 Route::post('/teacher/questions/store', [QuestionController::class, 'store'])
-    ->name('teacher.questions.store');    
+    ->name('teacher.questions.store');
+
+// exams creation route    
+Route::get('/teacher/exams/create', [\App\Http\Controllers\Teacher\ExamController::class, 'create'])
+    ->name('teacher.exams.create');
+
+// exams upload route    
+Route::post('/teacher/exams/store', [\App\Http\Controllers\Teacher\ExamController::class, 'store'])
+    ->name('teacher.exams.store');    
 
 // routes one ends here    
 

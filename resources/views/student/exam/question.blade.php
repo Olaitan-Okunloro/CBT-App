@@ -2,44 +2,39 @@
 
 @section('content')
 
-<div class="container">
+<style>
+    .exam-container {
+        color: white;
+    }
+</style>
 
-<h5>Question {{ $index + 1 }}</h5>
+<div class="container exam-container">
 
-<div class="alert alert-danger">
-Time Left: <span id="timer"></span>
-</div>
+    <h5>Question {{ $index + 1 }}</h5>
 
-<form method="POST" action="{{ route('student.exam.answer') }}">
-@csrf
+    <div class="alert alert-danger">
+        Time Left: <span id="timer"></span>
+    </div>
 
-<p>{{ $question->question_text }}</p>
+    <form method="POST" action="{{ route('student.exam.answer') }}">
+        @csrf
 
-@foreach($question->options as $option)
-<div>
-<label>
-<input type="radio" name="answer" value="{{ $option->option_label }}" required>
-{{ $option->option_label }}. {{ $option->option_text }}
-</label>
-</div>
-@endforeach
+        <p>{{ $question->question_text }}</p>
 
-<button class="btn btn-primary mt-3">Next</button>
+        <input type="text" name="answer" class="form-control">
 
-</form>
+        <button type="submit" class="btn btn-primary mt-3">Next</button>
+
+    </form>
 
 </div>
 
 <script>
-
-// 🔥 TIMER SYNC WITH SERVER
-let endTime = "{{ session('exam_end_time') }}";
+let endTime = new Date("{{ \Carbon\Carbon::parse(session('exam_end_time'))->toIso8601String() }}");
 
 function updateTimer(){
-    let now = new Date().getTime();
-    let end = new Date(endTime).getTime();
-
-    let diff = Math.floor((end - now)/1000);
+    let now = new Date();
+    let diff = Math.floor((endTime - now)/1000);
 
     if(diff <= 0){
         window.location.href = "{{ route('student.exam.submit.auto') }}";
@@ -49,12 +44,6 @@ function updateTimer(){
 }
 
 setInterval(updateTimer, 1000);
-
-history.pushState(null, null, location.href);
-window.onpopstate = function () {
-    history.go(1);
-};
-
 </script>
 
 @endsection

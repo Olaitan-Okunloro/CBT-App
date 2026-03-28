@@ -11,4 +11,9 @@ class Option extends Model
         'option_label',
         'option_text'
     ];
+
+    public function question()
+    {
+        return $this->belongsTo(\App\Models\Question::class);
+    }
 }
