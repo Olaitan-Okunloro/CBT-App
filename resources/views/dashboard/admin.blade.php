@@ -4,53 +4,55 @@
 
 <div class="container">
 
-<h3 class="mb-4" style="color:white"><i class="fas fa-school me-2" style="color:white">Admin Dashboard</h3>
+    <h3 class="mb-4" style="color:white">Admin Dashboard</h3>
 
-<div class="row">
+    <div class="row">
 
-<div class="col-md-4">
-<div class="card bg-primary text-white">
+        <div class="col-md-4">
+        <div class="card bg-primary text-white">
 
-<div class="card-body">
+        <div class="card-body">
 
-<h5>Schools</h5>
+        <h5>Schools</h5>
 
-<h2>{{ $schools }}</h2>
+        <h2>{{ $schools }}</h2>
 
-</div>
+        </div>
 
-</div>
-</div>
+        </div>
+        </div>
 
-<div class="col-md-4">
-<div class="card bg-success text-white">
+        <div class="col-md-4">
+        <div class="card bg-success text-white">
 
-<div class="card-body">
+        <div class="card-body">
 
-<h5>Teachers</h5>
+        <h5>Teachers</h5>
 
-<h2>{{ $teachers }}</h2>
+        <h2>{{ $teachers }}</h2>
 
-</div>
+        </div>
 
-</div>
-</div>
+        
 
-<div class="col-md-4">
-<div class="card bg-info text-white">
+        </div>
+        </div>
 
-<div class="card-body">
+        <div class="col-md-4">
+        <div class="card bg-info text-white">
 
-<h5>Students</h5>
+        <div class="card-body">
 
-<h2>{{ $students }}</h2>
+        <h5>Students</h5>
 
-</div>
+        <h2>{{ $students }}</h2>
 
-</div>
-</div>
+        </div>
 
-</div>
+        </div>
+        </div>
+
+    </div>
 
 </div>
 

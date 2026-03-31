@@ -17,5 +17,7 @@ class Kernel extends HttpKernel
 
         'paid' => \App\Http\Middleware\CheckPayment::class,
 
+        'role' => \App\Http\Middleware\CheckRole::class,
+
     ];
 }

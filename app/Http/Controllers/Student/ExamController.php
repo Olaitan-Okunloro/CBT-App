@@ -8,9 +8,11 @@ use App\Models\Exam;
 use App\Models\Question;
 use App\Models\ExamAttempt;
 use App\Models\Answer;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ExamController extends Controller
 {
+    // start exam
     public function start(Request $request, $examId)
     {
         $user = auth()->user();
@@ -65,6 +67,7 @@ class ExamController extends Controller
         // Create attempt
         $attempt = ExamAttempt::create([
             'user_id' => $user->id,
+            'subject_id' => $exam->subject_id,
             'exam_id' => $exam->id,
             'total' => $questions->count(),
             'started_at' => now()
@@ -76,9 +79,19 @@ class ExamController extends Controller
         $request->session()->put('current_index', 0);
         $request->session()->put('exam_end_time', now()->addMinutes($exam->duration));
 
+        if ($exam->category->name === 'real_exam') {
+
+            // 🚫 strict mode
+            session([
+                'no_back' => true,
+                'no_retry' => true
+            ]);
+        }
+
         return redirect()->route('student.exam.question');
     }
 
+    // available exams
     public function available()
     {
         $user = auth()->user();
@@ -104,6 +117,7 @@ class ExamController extends Controller
         return view('student.exam.index', compact('exams'));
     }
 
+    // questions
     public function question(Request $request)
     {
         $questions = $request->session()->get('exam_questions');
@@ -120,6 +134,7 @@ class ExamController extends Controller
         return view('student.exam.question', compact('question','index'));
     }
 
+    // answer
     public function answer(Request $request)
     {
         // ✅ Validate input
@@ -173,18 +188,20 @@ class ExamController extends Controller
         return redirect()->route('student.exam.question');
     }
 
-    public function submitAuto()
+    // auto submit
+    public function autoSubmit()
     {
         $attempt = ExamAttempt::find(session('attempt_id'));
 
         if (!$attempt) {
-            return redirect()->route('dashboard')
+            return redirect()->route('student.exams.available')
                 ->with('error', 'Session expired.');
         }
 
         $score = Answer::where('attempt_id', $attempt->id)
+            ->distinct('question_id')
             ->where('is_correct', 1)
-            ->count();
+            ->count('question_id');
 
         $attempt->update([
             'score' => $score,
@@ -199,13 +216,35 @@ class ExamController extends Controller
             'exam_end_time'
         ]);
 
+        // ✅ REDIRECT TO RESULT (NOT DASHBOARD)
         return redirect()->route('student.exam.result', $attempt->id);
     }
 
+    // results
     public function result($id)
     {
         $attempt = ExamAttempt::with('exam')->findOrFail($id);
 
         return view('student.exam.result', compact('attempt'));
+    }
+
+    
+    // download pdf 
+    public function downloadResult($id)
+    {
+        $attempt = ExamAttempt::with('exam','user')->findOrFail($id);
+
+        $pdf = Pdf::loadView('student.exam.pdf', compact('attempt'));
+
+        return $pdf->download('result.pdf');
+    }
+
+    public function analytics()
+    {
+        $data = ExamAttempt::selectRaw('DATE(created_at) as date, AVG(score) as avg_score')
+            ->groupBy('date')
+            ->get();
+
+        return view('student.analytics', compact('data'));
     }
 }

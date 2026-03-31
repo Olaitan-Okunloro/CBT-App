@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Question;
 use App\Models\StudentDetail;
 use App\Models\TeacherDetail;
+use App\Models\ExamAttempt;
 use Illuminate\Http\Request;
 
 class DashboardController extends Controller
@@ -80,6 +81,18 @@ class DashboardController extends Controller
         'teachers'=>$teachers,
         'students'=>$students
         ]);
+    }
 
+    public function analytics()
+    {
+        $totalStudents = User::where('role','student')->count();
+        $totalAttempts = ExamAttempt::count();
+        $averageScore = ExamAttempt::avg('score');
+
+        return view('dashboard.leaderboard', compact(
+            'totalStudents',
+            'totalAttempts',
+            'averageScore'
+        ));
     }
 }

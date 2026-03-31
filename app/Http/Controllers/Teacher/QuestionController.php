@@ -76,32 +76,48 @@ class QuestionController extends Controller
                 
                 // Handle different question types
                 if ($questionType === 'objective') {
+
+                    // ✅ DELETE EXISTING QUESTION (PREVENT DUPLICATE)
+                    $existingQuestion = Question::where('question_text', $q['question_text'])
+                        ->where('subject_id', $request->subject_id)
+                        ->where('school_id', $teacher->school_id)
+                        ->first();
+
+                    if ($existingQuestion) {
+                        // delete options first (important)
+                        Option::where('question_id', $existingQuestion->id)->delete();
+
+                        // delete question
+                        $existingQuestion->delete();
+                    }
+
                     $questionData['correct_answer'] = $q['correct_answer'];
                     
                     $question = Question::create($questionData);
                     
                     // Insert options
-                    Option::insert([
-                        [
-                            'question_id' => $question->id, 
-                            'option_label' => 'A', 
-                            'option_text' => $q['option_a']
-                        ],
-                        [
-                            'question_id' => $question->id, 
-                            'option_label' => 'B', 
-                            'option_text' => $q['option_b']
-                        ],
-                        [
-                            'question_id' => $question->id, 
-                            'option_label' => 'C', 
-                            'option_text' => $q['option_c']
-                        ],
-                        [
-                            'question_id' => $question->id, 
-                            'option_label' => 'D', 
-                            'option_text' => $q['option_d']
-                        ],
+                    Option::create([
+                        'question_id' => $question->id,
+                        'option_label' => 'A',
+                        'option_text' => $q['option_a']
+                    ]);
+
+                    Option::create([
+                        'question_id' => $question->id,
+                        'option_label' => 'B',
+                        'option_text' => $q['option_b']
+                    ]);
+
+                    Option::create([
+                        'question_id' => $question->id,
+                        'option_label' => 'C',
+                        'option_text' => $q['option_c']
+                    ]);
+
+                    Option::create([
+                        'question_id' => $question->id,
+                        'option_label' => 'D',
+                        'option_text' => $q['option_d']
                     ]);
                     
                     $successCount++;

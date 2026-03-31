@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Question extends Model
+class QuestionBank extends Model
 {
     protected $fillable = [
         'subject_id',
@@ -27,6 +27,4 @@ class Question extends Model
     {
         return $this->hasMany(\App\Models\Option::class);
     }
-
 }
-

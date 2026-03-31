@@ -8,6 +8,7 @@ class ExamAttempt extends Model
 {
     protected $fillable = [
         'user_id',
+        'subject_id',
         'exam_id',
         'score',
         'total',
@@ -29,5 +30,10 @@ class ExamAttempt extends Model
     public function answers()
     {
         return $this->hasMany(Answer::class, 'attempt_id');
+    }
+
+    public function subject()
+    {
+        return $this->hasMany(Subject::class, 'id');
     }
 }

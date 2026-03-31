@@ -142,7 +142,20 @@
                                 <i class="fas fa-book-open me-1"></i>Available Exams
                             </a>
                         </li>
-                        
+
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('student.leaderboard') ? 'active' : '' }}" 
+                               href="{{ route('student.leaderboard') }}">
+                                <i class="fas fa-chart-bar me-1"></i>Leader dashboard
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {{ request()->routeIs('student.analytics') ? 'active' : '' }}" 
+                               href="{{ route('student.analytics') }}">
+                                <i class="fas fa-chart-bar me-1"></i>Analytics
+                            </a>
+                        </li>
+                        <!-- <a href="{{ route('student.analytics') }}">Analytics</a> -->
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('student.results') ? 'active' : '' }}" 
                                href="{{ route('student.results') }}">
@@ -165,7 +178,7 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="#">
+                                    <a class="dropdown-item" href="{{ route('teacher.exams.create') }}">
                                         <i class="fas fa-plus me-2"></i>Create New Exam
                                     </a>
                                 </li>
@@ -191,6 +204,16 @@
                                 <li>
                                     <a class="dropdown-item" href="{{ route('teacher.questions.create') }}">
                                         <i class="fas fa-plus me-2"></i>Create Question
+                                    </a>
+                                </li>
+                                <!-- <li>
+                                    <a class="dropdown-item" href="{{ route('teacher.ai.generator') }}">
+                                        <i class="fas fa-robot me-2"></i>AI Question Generator
+                                    </a>
+                                </li> -->
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('teacher.question.bank') }}">
+                                        <i class="fas fa-robot me-2"></i>AI Question Generator
                                     </a>
                                 </li>
                                 <li>
@@ -334,6 +357,39 @@
                         <!-- Admin Links (if needed) -->
                         @if(auth()->user()->role == 'admin')
                         <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" 
+                               href="#" id="questionsDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-question-circle me-1"></i>Questions
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('teacher.questions.create') }}">
+                                        <i class="fas fa-plus me-2"></i>Create Question
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('admin.ai.generator') }}">
+                                        <i class="fas fa-robot me-2"></i>AI Question Generator
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="">
+                                        <i class="fas fa-database me-2"></i>Question Bank
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="">
+                                        <i class="fas fa-file-import me-2"></i>Import Questions
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="">
+                                        <i class="fas fa-tags me-2"></i>Categories
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-cog me-1"></i>Admin
                             </a>
@@ -341,6 +397,11 @@
                                 <li>
                                     <a class="dropdown-item" href="#">
                                         <i class="fas fa-users me-2"></i>Manage Users
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('dashboard.leaderboard') }}">
+                                        <i class="fas fa-credit-card me-2"></i>Analytics
                                     </a>
                                 </li>
                                 <li>

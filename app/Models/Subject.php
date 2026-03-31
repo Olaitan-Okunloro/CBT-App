@@ -11,5 +11,10 @@ class Subject extends Model
         'class_level_id',
         'created_by'
     ];
+
+    public function ExamAttempt()
+    {
+        return $this->hasMany(ExamAttempt::class, 'attempt_id');
+    }
 }
 

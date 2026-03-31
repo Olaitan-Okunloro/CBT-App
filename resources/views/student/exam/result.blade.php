@@ -16,7 +16,11 @@
         <p>Date: {{ $attempt->created_at }}</p>
 
     </div>
-</div>
+</div><br>
+
+<a href="{{ route('student.exam.pdf', $attempt->id) }}" class="btn btn-success">
+    Download PDF
+</a><br><br>
 
 <a href="{{ route('student.exams.available') }}" class="btn btn-primary mt-3">
     Take Another Exam
