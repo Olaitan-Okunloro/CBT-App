@@ -21,7 +21,6 @@ class ExamController extends Controller
         $request->validate([
             'title' => 'required',
             'subject_id' => 'required',
-            'class_id' => 'required',
             'exam_cat_id' => 'required',
             'total_questions' => 'required|integer',
             'duration' => 'required|integer'
@@ -32,13 +31,13 @@ class ExamController extends Controller
         Exam::create([
             'title' => $request->title,
             'subject_id' => $request->subject_id,
-            'class_id' => $request->class_id,
+            'class_id' => $teacher->class_id,
             'school_id' => $teacher->school_id,
             'exam_cat_id' => $request->exam_cat_id,
             'total_questions' => $request->total_questions,
             'duration' => $request->duration
         ]);
-
+        // dd($request);
         return back()->with('success', 'Exam created successfully');
     }
 }

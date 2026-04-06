@@ -66,7 +66,11 @@ Route::post('/school/students/import', [StudentController::class,'import'])
 
 // export credential
 Route::get('/school/students/download', [StudentController::class,'downloadCredentials'])
-    ->name('school.students.download');    
+    ->name('school.students.download'); 
+
+
+
+
 
 // teacher's routes start here
 
@@ -75,12 +79,48 @@ Route::middleware(['auth'])->prefix('teacher')->name('teacher.')->group(function
     Route::get('/dashboard', [TeacherController::class, 'dashboard'])->name('dashboard');
 });
 
-// routes/web.php
-Route::get('/teacher/question-bank', [QuestionBankController::class, 'index'])
-    ->name('teacher.question.bank');
+// teacher import questions
+Route::post('/teacher/bank-preview', [QuestionBankController::class, 'generatePreview'])
+    ->name('teacher.bank.preview');
 
-Route::post('/teacher/question-bank/import', [QuestionBankController::class, 'import'])
-    ->name('teacher.question.bank.import');
+Route::get('/teacher/ai-generator', function() {
+    if (auth()->user()->role !== 'teacher') {
+        abort(403, 'Unauthorized');
+    }
+    return app()->make(AIQuestionController::class)->index();
+})->name('teacher.ai.generator');    
+
+Route::post('/teacher/ai-save', [App\Http\Controllers\AIQuestionController::class, 'save'])
+    ->name('teacher.ai.save');
+
+Route::post('/teacher/ai-generate', [App\Http\Controllers\AIQuestionController::class, 'generate'])
+    ->name('teacher.ai.generate');
+
+// class -> subject route
+Route::get('/get-subjects/{classId}', function ($classId) {
+    return \App\Models\Subject::whereIn('id', function ($query) use ($classId) {
+        $query->select('subject_id')
+              ->from('class_subjects')
+              ->where('class_level_id', $classId);
+    })->get();
+});
+
+// subject -> topic route
+Route::get('/get-topics/{classId}/{subjectId}', function ($classId, $subjectId) {
+    return \App\Models\Topic::where('class_level_id', $classId)
+        ->where('subject_id', $subjectId)
+        ->get();
+});
+
+// Route::get('/teacher/question-bank', [QuestionBankController::class, 'index'])
+//     ->name('teacher.question.bank');
+
+// Route::post('/teacher/question-bank/import', [QuestionBankController::class, 'import'])
+//     ->name('teacher.question.bank.import');
+
+// teacher generate question
+// Route::post('/teacher/question-bank/generate', [QuestionBankController::class, 'generateFromBank'])
+//     ->name('teacher.bank.generate');    
 
 // teacher's route ends here 
 
@@ -136,30 +176,14 @@ Route::post('/teacher/exams/store', [\App\Http\Controllers\Teacher\ExamControlle
     ->name('teacher.exams.store');
 
 // leaderboard
-Route::get('/leaderboard', [App\Http\Controllers\Student\LeaderboardController::class, 'index'])
+Route::get('student/leaderboard', [App\Http\Controllers\Student\LeaderboardController::class, 'index'])
     ->name('student.leaderboard');
 
 // download result    
 Route::get('/exam/result/{id}/pdf', [ExamController::class, 'downloadResult'])
     ->name('student.exam.pdf');    
 
-// AI Question Generation Routes
-// Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')->group(function () {
-//     Route::get('/ai-generator', [AIQuestionController::class, 'index'])->name('ai.generator');
-//     Route::post('/ai-generate', [AIQuestionController::class, 'generate'])->name('ai.generate');
-//     Route::post('/ai-save', [AIQuestionController::class, 'save'])->name('ai.save');
-// });
-
 // teacher ai questions routes
-Route::get('/teacher/ai-generator', function() {
-    if (auth()->user()->role !== 'teacher') {
-        abort(403, 'Unauthorized');
-    }
-    return app()->make(AIQuestionController::class)->index();
-})->name('teacher.ai.generator');
-
-Route::post('/ai-save', [AIQuestionController::class, 'save'])->name('teacher.ai.save');
-Route::post('/ai-generate', [AIQuestionController::class, 'generate'])->name('teacher.ai.generate');
 
 
 // admin ai questions routes
@@ -172,6 +196,21 @@ Route::get('/admin/ai-generator', function() {
 
 Route::post('/ai-save', [AdminAIQuestionController::class, 'save'])->name('admin.ai.save');
 Route::post('/ai-generate', [AdminAIQuestionController::class, 'generate'])->name('admin.ai.generate');
+
+// auto-populate subjects    
+Route::get('/get-subjects/{classId}', function ($classId) {
+
+    return \App\Models\Subject::whereIn('id', function ($query) use ($classId) {
+        $query->select('subject_id')
+              ->from('topics')
+              ->where('class_level_id', $classId);
+    })->get();
+});
+
+// get topic route
+Route::get('/get-topics/{subjectId}', function ($subjectId) {
+    return \App\Models\Topic::where('subject_id', $subjectId)->get();
+});
 
 // routes one ends here    
 
@@ -212,6 +251,12 @@ Route::middleware(['auth'])->prefix('student')->name('student.')->group(function
     Route::get('/exam/{exam}/take', [StudentController::class, 'takeExam'])
         ->name('exam.take');
 });
+
+// correction route
+Route::get('/exam/review/{id}', [ExamController::class, 'review'])
+    ->name('student.exam.review');
+
+// student route ends here    
 
 // exam route
 Route::middleware(['auth','paid'])->group(function () {

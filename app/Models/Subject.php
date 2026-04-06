@@ -7,14 +7,17 @@ use Illuminate\Database\Eloquent\Model;
 class Subject extends Model
 {
     protected $fillable = [
-        'name',
-        'class_level_id',
-        'created_by'
+        'name'
     ];
 
     public function ExamAttempt()
     {
         return $this->hasMany(ExamAttempt::class, 'attempt_id');
+    }
+
+    public function topic()
+    {
+        return $this->hasMany(Topic::class);
     }
 }
 

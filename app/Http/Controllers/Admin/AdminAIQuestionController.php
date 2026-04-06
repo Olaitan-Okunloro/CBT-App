@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\QuestionBank;
 use App\Models\Subject;
+use App\Models\Topic;
 use App\Models\ClassLevel;
 use App\Models\TeacherDetail;
 use App\Models\Option;
@@ -30,9 +31,9 @@ class AdminAIQuestionController extends Controller
     public function generate(Request $request)
     {
         $request->validate([
-            'topic' => 'required|string|max:255',
+            'class_level_id' => 'required|exists:classes,id',
             'subject_id' => 'required|exists:subjects,id',
-            'exam_type' => 'required|string|in:UTME,WAEC,NECO,GCE,SS1,SS2,SS3,JSS1,JSS2,JSS3,Primary1,Primary2,Primary3,Primary4,Primary5,Primary6',
+            'topic_id' => 'required|exists:topics,id',
             'question_count' => 'required|integer|min:1|max:50',
             'question_type' => 'required|string|in:objective,fill_in_the_gap,mixed',
             'difficulty' => 'required|string|in:easy,medium,hard',
@@ -50,17 +51,20 @@ class AdminAIQuestionController extends Controller
 
         try {
             // Build the prompt
-            $subject = \App\Models\Subject::find($request->subject_id);
+            $class = ClassLevel::find($request->class_level_id);
+            $subject = Subject::find($request->subject_id);
+            $topic = \App\Models\Topic::find($request->topic_id);
 
-            if (!$subject) {
-                return back()->with('error', 'Invalid subject selected');
+            if (!$class || !$subject || !$topic) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid class, subject, or topic selected'
+                ], 422);
             }
 
-            $subjectName = $subject->name;
+            $prompt = $this->buildPrompt($request, $class->name, $subject->name, $topic->topic);
 
-            $prompt = $this->buildPrompt($request, $subjectName);
-            
-            // Call OpenAI API
+                        // Call OpenAI API
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . $apiKey,
                 'Content-Type' => 'application/json',
@@ -110,6 +114,7 @@ class AdminAIQuestionController extends Controller
             
         } catch (\Exception $e) {
             Log::error('AI Question Generation Error: ' . $e->getMessage());
+            // dd($e->getMessage());
             
             return response()->json([
                 'success' => false,
@@ -121,11 +126,12 @@ class AdminAIQuestionController extends Controller
     /**
      * Build the prompt based on user parameters
      */
-    private function buildPrompt($request, $subjectName)
+    private function buildPrompt($request, $className, $subjectName, $topicName)
     {
         $prompt = "Generate {$request->question_count} {$request->difficulty} difficulty ";
-        $prompt .= "{$request->question_type} questions about '{$request->topic}' ";
+        $prompt .= "{$request->question_type} questions on '{$topicName}' ";
         $prompt .= "for {$subjectName} subject ";
+        $prompt .= "for {$className} level ";
         $prompt .= "for {$request->exam_type} examination level.\n\n";
         
         if ($request->question_type === 'objective') {
@@ -205,10 +211,12 @@ class AdminAIQuestionController extends Controller
      */
     public function save(Request $request)
     {
-        // dd($request->questions);
+        // dd($request->all());
         $request->validate([
             'questions' => 'required|json',
+            'class_level_id' => 'required|exists:classes,id',
             'subject_id' => 'required|exists:subjects,id',
+            'topic_id' => 'required|exists:topics,id',
         ]);
 
         $questions = json_decode($request->questions, true);
@@ -219,9 +227,47 @@ class AdminAIQuestionController extends Controller
         }
 
         // 🔥 REMOVE EMPTY / INVALID ITEMS
-        $questions = array_filter($questions, function ($q) {
-            return isset($q['question_text']) && !empty($q['question_text']);
-        });
+        $questions = array_filter($questions, function ($q) use ($request) {
+
+        if (!isset($q['question_text']) || empty($q['question_text'])) {
+            return false;
+        }
+
+        // ✅ DEFINE cleanText HERE
+        $cleanText = strtolower(trim(preg_replace('/\s+/', ' ', $q['question_text'])));
+
+        // 🚫 CHECK IN questions TABLE
+        $exists = \App\Models\Question::whereRaw(
+            'LOWER(TRIM(question_text)) = ?',
+            [$cleanText]
+        )
+        ->where('subject_id', $request->subject_id)
+        ->where('topic_id', $request->topic_id)
+        ->exists();
+
+        // 🚫 CHECK IN question_banks TABLE
+        $existsInBank = \App\Models\QuestionBank::whereRaw(
+            'LOWER(TRIM(question_text)) = ?',
+            [$cleanText]
+        )
+        ->where('subject_id', $request->subject_id)
+        ->where('topic_id', $request->topic_id)
+        ->exists();
+
+        return !($exists || $existsInBank);
+    });
+
+        $uniqueQuestions = [];
+
+        foreach ($questions as $q) {
+            $text = trim($q['question_text']);
+
+            if (!isset($uniqueQuestions[$text])) {
+                $uniqueQuestions[$text] = $q;
+            }
+        }
+
+        $questions = array_values($uniqueQuestions);
 
         $teacher = auth()->user()->teacherDetail;
         $savedCount = 0;
@@ -230,10 +276,10 @@ class AdminAIQuestionController extends Controller
         foreach ($questions as $q) {
             try {
                 // Create question
-                $question = \App\Models\QuestionBank::create([
+                $question = QuestionBank::create([
                     'subject_id' => $request->subject_id,
-                    'class_level_id' => $teacher->class_id ?? null,
-                    // 'school_id' => $teacher->school_id,
+                    'topic_id' => $request->topic_id,
+                    'class_level_id' => $request->class_level_id,
                     'question_type' => $q['question_type'],
                     'question_text' => $q['question_text'],
                     'correct_answer' => $q['correct_answer'] ?? $q['expected_answer'] ?? null,
@@ -242,6 +288,10 @@ class AdminAIQuestionController extends Controller
                     'difficulty' => $q['difficulty'] ?? 'medium',
                     'explanation' => $q['explanation'] ?? null
                 ]);
+
+                if (!$question || !$question->id) {
+                    dd('Insert failed', $q);
+                }
 
                 // Save options if objective
                 if ($q['question_type'] === 'objective' && isset($q['options'])) {
@@ -266,7 +316,7 @@ class AdminAIQuestionController extends Controller
             }
         }
 
-        return redirect()->back()
+       return redirect()->back()
             ->with('success', "$savedCount questions generated and saved successfully!");
     }
 }

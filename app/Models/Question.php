@@ -8,6 +8,7 @@ class Question extends Model
 {
     protected $fillable = [
         'subject_id',
+        'topic_id',
         'class_level_id',
         'passage_id',
         'exam_type',
@@ -23,9 +24,9 @@ class Question extends Model
         'source'
     ];
 
-    public function options()
+    public function teacher_options()
     {
-        return $this->hasMany(\App\Models\Option::class);
+        return $this->hasMany(\App\Models\TeacherOption::class);
     }
 
 }

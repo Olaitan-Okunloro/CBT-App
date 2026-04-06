@@ -24,43 +24,33 @@
                         @csrf
                         
                         <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Subject/Topic <span class="text-danger">*</span></label>
-                                <input type="text" name="topic" class="form-control" 
-                                       placeholder="e.g., Photosynthesis, Algebra, English Grammar" required>
-                            </div>
+                            <div class="row">
+                                <!-- Class -->
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-bold">Class <span class="text-danger">*</span></label>
+                                    <select name="class_level_id" id="classSelect" class="form-control" required>
+                                        <option value="">-- Select Class --</option>
+                                        @foreach($classes as $class)
+                                            <option value="{{ $class->id }}">{{ $class->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
 
-                            <div class="mb-3">
-                                <label style="color: white">Subject</label>
-                                <select name="subject_id" class="form-control">
-                                    @foreach($subjects as $subject)
-                                    <option value="{{ $subject->id }}">{{ $subject->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-                        </div>
+                                <!-- Subject -->
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-bold">Subject <span class="text-danger">*</span></label>
+                                    <select name="subject_id" id="subjectSelect" class="form-control" required>
+                                        <option value="">-- Select Subject --</option>
+                                    </select>
+                                </div>
 
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold">Exam Type <span class="text-danger">*</span></label>
-                                <select name="exam_type" class="form-select" required>
-                                    <option value="Primary1">Primary 1</option>
-                                    <option value="Primary2">Primary 2</option>
-                                    <option value="Primary3">Primary 3</option>
-                                    <option value="Primary4">Primary 4</option>
-                                    <option value="Primary5">Primary 5</option>
-                                    <option value="Primary6">Primary 6</option>
-                                    <option value="JSS1">JSS 1</option>
-                                    <option value="JSS2">JSS 2</option>
-                                    <option value="JSS3">JSS 3</option>
-                                    <option value="SS1">SS 1</option>
-                                    <option value="SS2">SS 2</option>
-                                    <option value="SS3">SS 3</option>
-                                    <option value="UTME">UTME</option>
-                                    <option value="WAEC">WAEC</option>
-                                    <option value="NECO">NECO</option>
-                                    <option value="GCE">GCE</option>
-                                </select>
+                                <!-- Topic -->
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label fw-bold">Topic <span class="text-danger">*</span></label>
+                                    <select name="topic_id" id="topicSelect" class="form-control" required>
+                                        <option value="">-- Select Topic --</option>
+                                    </select>
+                                </div>
                             </div>
 
                             <div class="col-md-4 mb-3">
@@ -140,7 +130,9 @@
                         <form id="saveForm" method="POST" action="{{ route('admin.ai.save') }}">
                             @csrf
                             <input type="hidden" name="questions" id="savedQuestions">
+                            <input type="hidden" name="class_level_id" id="classId">
                             <input type="hidden" name="subject_id" id="subjectId">
+                            <input type="hidden" name="topic_id" id="topicId">
                             
                             <div class="d-flex gap-2">
                                 <button type="button" class="btn btn-secondary" onclick="regenerate()">
@@ -276,9 +268,10 @@ function regenerate() {
 // Handle save form
 document.getElementById('saveForm').addEventListener('submit', function(e) {
 
-    document.getElementById('subjectId').value = document.querySelector('[name="subject_id"]').value;
+    document.getElementById('classId').value = document.getElementById('classSelect').value;
+    document.getElementById('subjectId').value = document.getElementById('subjectSelect').value;
+    document.getElementById('topicId').value = document.getElementById('topicSelect').value;
 
-    // 🔥 ALWAYS SEND ALL QUESTIONS (FOR NOW)
     if (!generatedQuestions || generatedQuestions.length === 0) {
         e.preventDefault();
         toastr.error('No questions to save');
@@ -296,6 +289,50 @@ document.getElementById('questionType').addEventListener('change', function() {
     } else {
         optionsDiv.style.display = 'none';
     }
+});
+
+// Load Subjects based on Class
+document.getElementById('classSelect').addEventListener('change', function () {
+    let classId = this.value;
+
+    console.log("Class ID:", classId); // DEBUG
+
+    if (!classId) return;
+
+    fetch(`{{ url('/get-subjects') }}/${classId}`)
+        .then(res => res.json())
+        .then(data => {
+            console.log("Subjects:", data); // DEBUG
+
+            let subjectSelect = document.getElementById('subjectSelect');
+            subjectSelect.innerHTML = '<option value="">-- Select Subject --</option>';
+
+            data.forEach(subject => {
+                subjectSelect.innerHTML += `<option value="${subject.id}">${subject.name}</option>`;
+            });
+
+            document.getElementById('topicSelect').innerHTML = '<option value="">-- Select Topic --</option>';
+        })
+        .catch(err => {
+            console.error("Error loading subjects:", err);
+        });
+});
+
+// Load Topics based on Subject + Class
+document.getElementById('subjectSelect').addEventListener('change', function () {
+    let subjectId = this.value;
+    let classId = document.getElementById('classSelect').value;
+
+    fetch(`/get-topics/${classId}/${subjectId}`)
+        .then(res => res.json())
+        .then(data => {
+            let topicSelect = document.getElementById('topicSelect');
+            topicSelect.innerHTML = '<option value="">-- Select Topic --</option>';
+
+            data.forEach(topic => {
+                topicSelect.innerHTML += `<option value="${topic.id}">${topic.topic}</option>`;
+            });
+        });
 });
 </script>
 @endsection

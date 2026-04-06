@@ -24,7 +24,7 @@
         {{-- OBJECTIVE --}}
         @if($question->question_type === 'objective')
 
-            @foreach($question->options as $option)
+            @foreach($question->teacher_options as $option)
             <div>
                 <label>
                     <input type="radio" name="answer" value="{{ $option->option_label }}" >

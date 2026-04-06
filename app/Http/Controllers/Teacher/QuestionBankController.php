@@ -12,44 +12,63 @@ use App\Models\Question;
 
 class QuestionBankController extends Controller
 {
-
-    public function index()
-    {
-        $questions = \App\Models\Question::latest()->paginate(20);
-
-        return view('teacher.questions.bank', compact('questions'));
-    }
-
-    public function import(Request $request)
+    public function generatePreview(Request $request)
     {
         $teacher = auth()->user()->teacherDetail;
 
-        foreach ($request->question_ids as $id) {
+        $request->validate([
+            'subject_id' => 'required',
+            'topic_id' => 'required',
+            'count' => 'required|integer|min:1|max:50'
+        ]);
 
-            $bank = \App\Models\QuestionBank::with('options')->find($id);
+        $questions = \App\Models\QuestionBank::where('subject_id', $request->subject_id)
+            ->where('class_level_id', $teacher->class_id)
+             ->where('topic_id', $request->topic_id)
+            ->inRandomOrder()
+            ->limit($request->count)
+            ->get();
 
-            $question = \App\Models\Question::create([
-                'subject_id' => $bank->subject_id,
-                'class_level_id' => $teacher->class_id,
-                'school_id' => $teacher->school_id,
-                'question_type' => $bank->question_type,
-                'question_text' => $bank->question_text,
-                'correct_answer' => $bank->correct_answer,
-                'source' => 'internal',
-                'difficulty' => $bank->difficulty,
-                'explanation' => $bank->explanation,
-                'created_by' => auth()->id(),
+        if ($questions->isEmpty()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No questions found in bank'
             ]);
-
-            foreach ($bank->options as $opt) {
-                \App\Models\Option::create([
-                    'question_id' => $question->id,
-                    'option_label' => $opt->option_label,
-                    'option_text' => $opt->option_text,
-                ]);
-            }
         }
 
-        return back()->with('success', 'Questions imported successfully');
+        // 🔥 FORMAT LIKE AI RESPONSE
+        $formatted = [];
+
+        foreach ($questions as $q) {
+
+            $item = [
+                'question_text' => $q->question_text,
+                'question_type' => $q->question_type,
+                'correct_answer' => $q->correct_answer,
+                'difficulty' => $q->difficulty,
+                'explanation' => $q->explanation
+            ];
+
+            if ($q->question_type === 'objective') {
+                $options = \App\Models\Option::where('question_id', $q->id)->get();
+
+                $opts = [];
+                foreach ($options as $opt) {
+                    $opts[$opt->option_label] = $opt->option_text;
+                }
+
+                $item['options'] = $opts;
+            } else {
+                $item['expected_answer'] = $q->correct_answer;
+            }
+
+            $formatted[] = $item;
+        }
+
+        return response()->json([
+            'success' => true,
+            'questions' => $formatted,
+            'count' => count($formatted)
+        ]);
     }
 }

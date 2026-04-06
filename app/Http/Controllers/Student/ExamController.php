@@ -41,24 +41,14 @@ class ExamController extends Controller
 
         // Split questions into types
         $total = $exam->total_questions;
-        $half = ceil($total / 2);
 
-        $objective = (clone $query)
-            ->where('question_type', 'objective')
-            ->inRandomOrder()
-            ->take($half)
-            ->get();
+        // Try to get all questions first
+        $questions = $query->inRandomOrder()->take($total)->get();
 
-        $fill = (clone $query)
-            ->where('question_type', 'fill_in_the_gap')
-            ->inRandomOrder()
-            ->take($half)
-            ->get();
-
-        $questions = $objective->merge($fill)->shuffle();
-
-        // Merge both
-        $questions = $objective->merge($fill)->shuffle();
+        // If not enough, fallback safely
+        if ($questions->count() < $total) {
+            $questions = $query->inRandomOrder()->get();
+        }
 
         if ($questions->isEmpty()) {
             return back()->with('error', 'No questions available for this exam.');
@@ -79,14 +69,12 @@ class ExamController extends Controller
         $request->session()->put('current_index', 0);
         $request->session()->put('exam_end_time', now()->addMinutes($exam->duration));
 
-        if ($exam->category->name === 'real_exam') {
-
-            // 🚫 strict mode
-            session([
-                'no_back' => true,
-                'no_retry' => true
-            ]);
-        }
+        // if ($exam->category->name === 'real_exam') {
+        //     session([
+        //         'no_back' => true,
+        //         'no_retry' => true
+        //     ]);
+        // }
 
         return redirect()->route('student.exam.question');
     }
@@ -129,7 +117,7 @@ class ExamController extends Controller
 
         $questionId = $questions[$index];
 
-        $question = Question::with('options')->find($questionId);
+        $question = Question::with('teacher_options')->find($questionId);
 
         return view('student.exam.question', compact('question','index'));
     }
@@ -246,5 +234,14 @@ class ExamController extends Controller
             ->get();
 
         return view('student.analytics', compact('data'));
+    }
+
+    public function review($id)
+    {
+        $attempt = ExamAttempt::with([
+            'answers.question.teacher_options'
+        ])->findOrFail($id);
+
+        return view('student.exam.review', compact('attempt'));
     }
 }

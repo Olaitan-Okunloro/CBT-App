@@ -1,0 +1,19 @@
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class TeacherOption extends Model
+{
+    protected $fillable = [
+        'question_id',
+        'option_label',
+        'option_text'
+    ];
+
+    public function question()
+    {
+        return $this->belongsTo(\App\Models\Question::class);
+    }
+}

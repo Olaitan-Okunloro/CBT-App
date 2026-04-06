@@ -23,53 +23,46 @@
                     <form method="POST" action="{{ route('teacher.ai.generate') }}" id="generationForm">
                         @csrf
                         
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Subject/Topic <span class="text-danger">*</span></label>
-                                <input type="text" name="topic" class="form-control" 
-                                       placeholder="e.g., Photosynthesis, Algebra, English Grammar" required>
-                            </div>
+                        <select name="class_level_id" id="classSelect" class="form-control">
+    <option value="">Select Class</option>
+    @foreach($classes as $class)
+        <option value="{{ $class->id }}">{{ $class->name }}</option>
+    @endforeach
+</select>
 
-                            <div class="mb-3">
-                                <label style="color: white">Subject</label>
-                                <select name="subject_id" class="form-control">
-                                    @foreach($subjects as $subject)
-                                    <option value="{{ $subject->id }}">{{ $subject->name }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
+<div class="mb-3">
+    <label style="color: white">Subject</label>
+    <select name="subject_id" id="subjectSelect" class="form-control">
+        <option value="">Select Subject</option>
+    </select>
+</div>
+
+<div class="mb-3">
+    <label style="color: white">Topic</label>
+    <select name="topic_id" id="topicSelect" class="form-control">
+        <option value="">Select Topic</option>
+    </select>
+</div>
+
+                            
                         </div>
 
                         <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold">Exam Type <span class="text-danger">*</span></label>
-                                <select name="exam_type" class="form-select" required>
-                                    <option value="Primary1">Primary 1</option>
-                                    <option value="Primary2">Primary 2</option>
-                                    <option value="Primary3">Primary 3</option>
-                                    <option value="Primary4">Primary 4</option>
-                                    <option value="Primary5">Primary 5</option>
-                                    <option value="Primary6">Primary 6</option>
-                                    <option value="JSS1">JSS 1</option>
-                                    <option value="JSS2">JSS 2</option>
-                                    <option value="JSS3">JSS 3</option>
-                                    <option value="SS1">SS 1</option>
-                                    <option value="SS2">SS 2</option>
-                                    <option value="SS3">SS 3</option>
-                                    <option value="UTME">UTME</option>
-                                    <option value="WAEC">WAEC</option>
-                                    <option value="NECO">NECO</option>
-                                    <option value="GCE">GCE</option>
+        
+                            <!-- <div class="mb-3">
+                                <label style="color: white">Subject</label>
+                                <select name="subject_id" id="subjectSelect" class="form-control">
+                                    <option value="">Select Subject</option>
                                 </select>
-                            </div>
-
+                            </div> -->
+                            
                             <div class="col-md-4 mb-3">
                                 <label class="form-label fw-bold">Number of Questions <span class="text-danger">*</span></label>
-                                <input type="number" name="question_count" class="form-control" 
-                                       value="10" min="1" max="50" required>
+                                <input type="number" name="count" class="form-control" 
+                                    value="10" min="1" max="50" required>
                             </div>
 
-                            <div class="col-md-4 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label class="form-label fw-bold">Difficulty Level <span class="text-danger">*</span></label>
                                 <select name="difficulty" class="form-select" required>
                                     <option value="easy">Easy</option>
@@ -105,11 +98,11 @@
                             </div>
                         </div>
 
-                        <div class="mb-3">
+                        <!-- <div class="mb-3">
                             <label class="form-label fw-bold">Additional Instructions (Optional)</label>
                             <textarea name="instructions" class="form-control" rows="2" 
                                       placeholder="e.g., Include diagrams, focus on calculations, emphasize key concepts..."></textarea>
-                        </div>
+                        </div> -->
 
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary btn-lg" id="generateBtn">
@@ -141,6 +134,7 @@
                             @csrf
                             <input type="hidden" name="questions" id="savedQuestions">
                             <input type="hidden" name="subject_id" id="subjectId">
+                            <input type="hidden" name="topic_id" id="topicId">
                             
                             <div class="d-flex gap-2">
                                 <button type="button" class="btn btn-secondary" onclick="regenerate()">
@@ -159,6 +153,7 @@
 </div>
 
 <script>
+
 let generatedQuestions = [];
 
 document.getElementById('generationForm').addEventListener('submit', async function(e) {
@@ -172,7 +167,7 @@ document.getElementById('generationForm').addEventListener('submit', async funct
     const formData = new FormData(this);
     
     try {
-        const response = await fetch('{{ route("teacher.ai.generate") }}', {
+        const response = await fetch('{{ route("teacher.bank.preview") }}', {
             method: 'POST',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
@@ -276,9 +271,12 @@ function regenerate() {
 // Handle save form
 document.getElementById('saveForm').addEventListener('submit', function(e) {
 
-    document.getElementById('subjectId').value = document.querySelector('[name="subject_id"]').value;
+    document.getElementById('subjectId').value =
+        document.querySelector('[name="subject_id"]').value;
 
-    // 🔥 ALWAYS SEND ALL QUESTIONS (FOR NOW)
+    document.getElementById('topicId').value =
+        document.querySelector('[name="topic_id"]').value;
+
     if (!generatedQuestions || generatedQuestions.length === 0) {
         e.preventDefault();
         toastr.error('No questions to save');
@@ -296,6 +294,46 @@ document.getElementById('questionType').addEventListener('change', function() {
     } else {
         optionsDiv.style.display = 'none';
     }
+});
+
+
+// Load subjects when class changes
+document.getElementById('classSelect').addEventListener('change', function() {
+
+    fetch('/get-subjects/' + this.value)
+        .then(res => res.json())
+        .then(data => {
+            let subjectSelect = document.getElementById('subjectSelect');
+            subjectSelect.innerHTML = '<option>Select Subject</option>';
+
+            data.forEach(sub => {
+                subjectSelect.innerHTML += `<option value="${sub.id}">${sub.name}</option>`;
+            });
+        });
+});
+
+
+// Load topics when subject changes
+document.getElementById('subjectSelect').addEventListener('change', function() {
+
+    let subjectId = this.value;
+
+    if (!subjectId) return;
+
+    fetch('/get-topics/' + subjectId)
+        .then(res => res.json())
+        .then(data => {
+
+            console.log('TOPICS:', data); // 👈 DEBUG
+
+            let topicSelect = document.getElementById('topicSelect');
+            topicSelect.innerHTML = '<option value="">Select Topic</option>';
+
+            data.forEach(topic => {
+                topicSelect.innerHTML += `<option value="${topic.id}">${topic.topic}</option>`;
+            });
+        })
+        .catch(err => console.error('Error loading topics:', err));
 });
 </script>
 @endsection

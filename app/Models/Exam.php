@@ -11,6 +11,7 @@ class Exam extends Model
         'title',
         'subject_id',
         'class_id',
+        'school_id',
         'exam_cat_id',
         'duration',
         'total_questions'

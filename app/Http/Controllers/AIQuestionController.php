@@ -10,7 +10,7 @@ use App\Models\Question;
 use App\Models\Subject;
 use App\Models\ClassLevel;
 use App\Models\TeacherDetail;
-use App\Models\Option;
+use App\Models\TeacherOption;
 
 class AIQuestionController extends Controller
 {
@@ -30,10 +30,11 @@ class AIQuestionController extends Controller
     public function generate(Request $request)
     {
         $request->validate([
-            'topic' => 'required|string|max:255',
+            // 'topic' => 'required|string|max:255',
             'subject_id' => 'required|exists:subjects,id',
+            'topic_id' => 'required|exists:topics,id',
             'exam_type' => 'required|string|in:UTME,WAEC,NECO,GCE,SS1,SS2,SS3,JSS1,JSS2,JSS3,Primary1,Primary2,Primary3,Primary4,Primary5,Primary6',
-            'question_count' => 'required|integer|min:1|max:50',
+            'count' => 'required|integer|min:1|max:50',
             'question_type' => 'required|string|in:objective,fill_in_the_gap,mixed',
             'difficulty' => 'required|string|in:easy,medium,hard',
             'options_count' => 'required|integer|min:2|max:5',
@@ -59,6 +60,11 @@ class AIQuestionController extends Controller
             $subjectName = $subject->name;
 
             $prompt = $this->buildPrompt($request, $subjectName);
+
+            $topic = \App\Models\Topic::find($request->topic_id);
+            $topicName = $topic->topics ?? '';
+
+            $prompt .= "on topic '{$topicName}' ";
             
             // Call OpenAI API
             $response = Http::withHeaders([
@@ -209,6 +215,7 @@ class AIQuestionController extends Controller
         $request->validate([
             'questions' => 'required|json',
             'subject_id' => 'required|exists:subjects,id',
+            'topic_id' => 'required'
         ]);
 
         $questions = json_decode($request->questions, true);
@@ -224,21 +231,37 @@ class AIQuestionController extends Controller
         });
 
         $teacher = auth()->user()->teacherDetail;
+
+        if (!$teacher) {
+            return back()->with('error', 'Teacher profile not found');
+        }
         $savedCount = 0;
 
         // dd($questions);
         foreach ($questions as $q) {
             try {
                 // Create question
+                // 🚫 CHECK DUPLICATE FIRST
+$exists = \App\Models\Question::where('question_text', trim($q['question_text']))
+    ->where('subject_id', $request->subject_id)
+    ->where('topic_id', $request->topic_id)
+    ->exists();
+
+if ($exists) {
+    continue; // ⛔ Skip duplicate
+}
+
+                // ✅ CREATE ONLY IF NOT DUPLICATE
                 $question = \App\Models\Question::create([
                     'subject_id' => $request->subject_id,
+                    'topic_id' => $request->topic_id,
                     'class_level_id' => $teacher->class_id ?? null,
                     'school_id' => $teacher->school_id,
                     'question_type' => $q['question_type'],
-                    'question_text' => $q['question_text'],
+                    'question_text' => trim($q['question_text']),
                     'correct_answer' => $q['correct_answer'] ?? $q['expected_answer'] ?? null,
                     'created_by' => auth()->id(),
-                    'source' => 'ai_generated',
+                    'source' => 'internal',
                     'difficulty' => $q['difficulty'] ?? 'medium',
                     'explanation' => $q['explanation'] ?? null
                 ]);
@@ -255,14 +278,19 @@ class AIQuestionController extends Controller
                             'updated_at' => now()
                         ];
                     }
-                    \App\Models\Option::insert($optionsData);
+                    \App\Models\TeacherOption::insert($optionsData);
                 }
 
                 $savedCount++;
 
             } catch (\Exception $e) {
                 Log::error('Failed to save AI question: ' . $e->getMessage());
+                // dd($e->getMessage());
             }
+        }
+
+        if ($savedCount == 0) {
+            return back()->with('error', 'No questions were saved because, duplicate questions detected!');
         }
 
         return redirect()->back()

@@ -155,7 +155,6 @@
                                 <i class="fas fa-chart-bar me-1"></i>Analytics
                             </a>
                         </li>
-                        <!-- <a href="{{ route('student.analytics') }}">Analytics</a> -->
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('student.results') ? 'active' : '' }}" 
                                href="{{ route('student.results') }}">
@@ -206,16 +205,12 @@
                                         <i class="fas fa-plus me-2"></i>Create Question
                                     </a>
                                 </li>
-                                <!-- <li>
+                                <li>
                                     <a class="dropdown-item" href="{{ route('teacher.ai.generator') }}">
                                         <i class="fas fa-robot me-2"></i>AI Question Generator
                                     </a>
-                                </li> -->
-                                <li>
-                                    <a class="dropdown-item" href="{{ route('teacher.question.bank') }}">
-                                        <i class="fas fa-robot me-2"></i>AI Question Generator
-                                    </a>
                                 </li>
+        
                                 <li>
                                     <a class="dropdown-item" href="">
                                         <i class="fas fa-database me-2"></i>Question Bank
