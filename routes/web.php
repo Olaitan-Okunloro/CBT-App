@@ -7,6 +7,8 @@ use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\School\TeacherController;
 use App\Http\Controllers\School\StudentController;
 use App\Http\Controllers\School\SchoolController;
+use App\Http\Controllers\School\SchoolClassController;
+use App\Http\Controllers\School\TeacherSubjectController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Student\ExamController;
 use App\Http\Controllers\Student\LeaderboardController;
@@ -239,6 +241,27 @@ Route::middleware('auth')->group(function () {
     )->name('payment.receipt');
 
 });
+
+// Teacher Subject Management Routes
+Route::get('/teacher-subjects', [TeacherSubjectController::class, 'index'])->name('teacher-subjects.index');
+    Route::get('/teacher-subjects/create', [TeacherSubjectController::class, 'create'])->name('teacher-subjects.create');
+    Route::post('/teacher-subjects', [TeacherSubjectController::class, 'store'])->name('teacher-subjects.store');
+    Route::put('/teacher-subjects/{id}/toggle', [TeacherSubjectController::class, 'toggle'])->name('teacher-subjects.toggle');
+    Route::delete('/teacher-subjects/{id}', [TeacherSubjectController::class, 'destroy'])->name('teacher-subjects.destroy');
+Route::middleware(['auth', 'role:school'])->prefix('school')->name('school.')->group(function () {
+    // Teacher Subjects
+    
+});
+
+
+// School Classes Routes - Use correct namespace
+Route::get('school/classes', [App\Http\Controllers\School\SchoolClassController::class, 'index'])->name('classes.index');
+Route::get('school/classes/create', [App\Http\Controllers\School\SchoolClassController::class, 'create'])->name('classes.create');
+Route::post('school/classes', [App\Http\Controllers\School\SchoolClassController::class, 'store'])->name('classes.store');
+Route::delete('school/classes/{id}', [App\Http\Controllers\School\SchoolClassController::class, 'destroy'])->name('classes.destroy');
+Route::get('school/classes/available', [App\Http\Controllers\School\SchoolClassController::class, 'getAvailableClasses'])->name('classes.available');
+// Route::middleware(['auth'])->prefix('school')->name('school.')->group(function () {
+// });
 
 // Student routes
 Route::middleware(['auth'])->prefix('student')->name('student.')->group(function () {

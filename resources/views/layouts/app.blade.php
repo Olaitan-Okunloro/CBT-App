@@ -10,6 +10,8 @@
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link href="{{ asset('node_modules/bootstrap/dist/css/bootstrap.min.css') }}" rel="stylesheet">
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -308,6 +310,11 @@
                                         <i class="fas fa-plus me-2"></i>Add Teacher
                                     </a>
                                 </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('teacher-subjects.create') }}">
+                                        <i class="fas fa-plus me-2"></i>Assign Subjects to Teacher
+                                    </a>
+                                </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <a class="dropdown-item" href="#">
@@ -333,6 +340,11 @@
                                 <li>
                                     <a class="dropdown-item" href="#">
                                         <i class="fas fa-layer-group me-2"></i>Classes
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('classes.create') }}">
+                                        <i class="fas fa-layer-group me-2"></i>Add Class
                                     </a>
                                 </li>
                                 <li>
