@@ -10,8 +10,6 @@
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <link href="{{ asset('node_modules/bootstrap/dist/css/bootstrap.min.css') }}" rel="stylesheet">
     
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -144,13 +142,19 @@
                                 <i class="fas fa-book-open me-1"></i>Available Exams
                             </a>
                         </li>
-
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('student.leaderboard') ? 'active' : '' }}" 
                                href="{{ route('student.leaderboard') }}">
                                 <i class="fas fa-chart-bar me-1"></i>Leader dashboard
                             </a>
                         </li>
+                        @isset($student)
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ route('student.qrcode', $student->user_id) }}">
+                                <i class="fas fa-qrcode me-1"></i>View QR Code
+                            </a>
+                        </li>
+                        @endisset
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('student.analytics') ? 'active' : '' }}" 
                                href="{{ route('student.analytics') }}">
@@ -231,7 +235,7 @@
                             </ul>
                         </li>
 
-                        <li class="nav-item dropdown">
+                        <!-- <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" 
                                href="#" id="subjectsDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-book me-1"></i>Subjects
@@ -245,6 +249,42 @@
                                 <li>
                                     <a class="dropdown-item" href="">
                                         <i class="fas fa-plus me-2"></i>Add Subject
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="">
+                                        <i class="fas fa-sitemap me-2"></i>Topics
+                                    </a>
+                                </li>
+                            </ul>
+                        </li> -->
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" 
+                               href="#" id="subjectsDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-book me-1"></i>Attendance
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('attendance.scan') }}">
+                                        <i class="fas fa-list me-2"></i>Take Attendance
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('attendance.dashboard') }}">
+                                        <i class="fas fa-plus me-2"></i>Attendance Dashboard
+                                    </a>
+                                </li>
+                                <!-- Correct: If this is general menu/sidebar -->
+                                 <li class="nav-item">
+                                    <a class="dropdown-item" href="{{ route('students.face.list') }}">
+                                        <i class="fas fa-user-check me-1"></i>
+                                        Student Face Registration
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="dropdown-item" href="{{ route('attendance.face.scan') }}">
+                                        <i class="fas fa-camera me-1"></i> Face Attendance Scan
                                     </a>
                                 </li>
                                 <li>
@@ -274,6 +314,11 @@
                                 <li>
                                     <a class="dropdown-item" href="">
                                         <i class="fas fa-download me-2"></i>Export Results
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('attendance.scan') }}">
+                                        <i class="fas fa-attendance me-1"></i>Attendance
                                     </a>
                                 </li>
                             </ul>
@@ -311,8 +356,24 @@
                                     </a>
                                 </li>
                                 <li>
+                                    <a class="dropdown-item" href="{{ route('teacher-subjects.index') }}">
+                                        <i class="fas fa-plus me-2"></i>Teacher/Subjects
+                                    </a>
+                                </li>
+                                <li>
                                     <a class="dropdown-item" href="{{ route('teacher-subjects.create') }}">
                                         <i class="fas fa-plus me-2"></i>Assign Subjects to Teacher
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="dropdown-item" href="{{ route('school.students.face.list') }}">
+                                        <i class="fas fa-user-check me-1"></i>
+                                        Student Face Registration
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="dropdown-item" href="{{ route('school.attendance.face.scan') }}">
+                                        <i class="fas fa-camera me-1"></i> Face Attendance Scan
                                     </a>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>

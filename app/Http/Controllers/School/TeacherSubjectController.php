@@ -40,12 +40,14 @@ class TeacherSubjectController extends Controller
                 $q->where('name', 'like', "%{$search}%");
             });
         }
+
+            $paginator = $query->orderBy('created_at', 'desc')->paginate(10);
+
+            $assignments = $paginator->getCollection()->groupBy(function ($item) {
+                return $item->teacher_id . '-' . $item->subject_id;
+            });
         
-        $assignments = $query->orderBy('created_at', 'desc')
-            ->paginate(10)
-            ->withQueryString();
-        
-        return view('school.teacher-subjects.index', compact('assignments'));
+        return view('school.teacher-subjects.index', compact('assignments', 'paginator'));
     }
 
     /**

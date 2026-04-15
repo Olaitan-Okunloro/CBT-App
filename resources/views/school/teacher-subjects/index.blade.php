@@ -48,43 +48,50 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @foreach($assignments as $index => $assignment)
-                                    <tr>
-                                        <td>{{ $assignments->firstItem() + $index }}</td>
-                                        <td>{{ $assignment->teacher->name ?? 'N/A' }}</td>
-                                        <td>{{ $assignment->subject->name ?? 'N/A' }}</td>
-                                        <td>{{ $assignment->class->name ?? 'N/A' }}</td>
-                                        <td>
-                                            @if($assignment->is_active)
-                                                <span class="badge bg-success">Active</span>
-                                            @else
-                                                <span class="badge bg-danger">Inactive</span>
-                                            @endif
-                                        </td>
-                                        <td>{{ $assignment->created_at->format('d M, Y') }}</td>
-                                        <td>
-                                            <div class="btn-group" role="group">
-                                                <form method="POST" action="{{ route('teacher-subjects.toggle', $assignment->id) }}" class="d-inline">
-                                                    @csrf
-                                                    @method('PUT')
-                                                    <button type="submit" class="btn btn-sm btn-warning" 
-                                                            onclick="return confirm('Toggle assignment status?')">
-                                                        <i class="fas {{ $assignment->is_active ? 'fa-ban' : 'fa-check-circle' }}"></i>
-                                                        {{ $assignment->is_active ? 'Deactivate' : 'Activate' }}
-                                                    </button>
-                                                </form>
-                                                
-                                                <form method="POST" action="{{ route('teacher-subjects.destroy', $assignment->id) }}" class="d-inline ms-2">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-sm btn-danger" 
-                                                            onclick="return confirm('Remove this assignment?')">
-                                                        <i class="fas fa-trash-alt"></i> Remove
-                                                    </button>
-                                                </form>
-                                            </div>
-                                        </td>
-                                    </tr>
+                                    @foreach($assignments as $group)
+                                        @php
+                                            $first = $group->first();
+                                        @endphp
+                                        <tr>
+                                            <td>{{ $loop->iteration }}</td>
+
+                                            <td>{{ $first->teacher->name ?? 'N/A' }}</td>
+
+                                            <td>{{ $first->subject->name ?? 'N/A' }}</td>
+
+                                            <td>
+                                                @foreach($group as $item)
+                                                    <span class="badge bg-primary">
+                                                        {{ $item->class->classLevel->name ?? 'N/A' }}
+                                                    </span>
+                                                @endforeach
+                                            </td>
+
+                                            <td>
+                                                @if($group->contains('is_active', true))
+                                                    <span class="badge bg-success">Active</span>
+                                                @else
+                                                    <span class="badge bg-danger">Inactive</span>
+                                                @endif
+                                            </td>
+
+                                            <td>{{ $first->created_at->format('d M, Y') }}</td>
+
+                                            <td>
+                                                <div class="btn-group" role="group">
+                                                    @foreach($group as $item)
+                                                        <form method="POST" action="{{ route('teacher-subjects.destroy', $item->id) }}" class="d-inline">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                            <button type="submit" class="btn btn-sm btn-danger"
+                                                                    onclick="return confirm('Remove {{ $item->class->classLevel->name }}?')">
+                                                                {{ $item->class->classLevel->name }}
+                                                            </button>
+                                                        </form>
+                                                    @endforeach
+                                                </div>
+                                            </td>
+                                        </tr>
                                     @endforeach
                                 </tbody>
                             </table>
@@ -92,16 +99,15 @@
                         
                         <!-- Pagination -->
                         <div class="d-flex justify-content-center mt-4">
-                            {{ $assignments->links() }}
+                            {{ $paginator->links('pagination::bootstrap-5') }}
                         </div>
                         
                         <div class="text-center mt-3">
                             <small class="text-muted">
-                                Showing {{ $assignments->firstItem() }} to {{ $assignments->lastItem() }} 
-                                of {{ $assignments->total() }} results
+                                Showing {{ $paginator->firstItem() }} to {{ $paginator->lastItem() }} 
+                                of {{ $paginator->total() }} results
                             </small>
                         </div>
-                        
                     @else
                         <div class="text-center py-5">
                             <i class="fas fa-chalkboard-teacher fa-3x text-muted mb-3"></i>

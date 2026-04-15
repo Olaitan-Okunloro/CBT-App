@@ -11,11 +11,13 @@ use App\Http\Controllers\School\SchoolClassController;
 use App\Http\Controllers\School\TeacherSubjectController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Student\ExamController;
+use App\Http\Controllers\Student\QRcodeController;
 use App\Http\Controllers\Student\LeaderboardController;
 use App\Http\Controllers\Teacher\QuestionController;
 use App\Http\Controllers\Teacher\QuestionBankController;
 use App\Http\Controllers\AIQuestionController;
 use App\Http\Controllers\Admin\AdminAIQuestionController;
+use App\Http\Controllers\AttendanceController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -139,6 +141,22 @@ Route::middleware(['auth'])->prefix('school')->name('school.')->group(function (
 Route::get('/school/students/download-page', [StudentController::class,'downloadPage'])
     ->name('school.students.download.page');
 
+
+// qr code    
+Route::get('/student/{id}/qrcode', [QRcodeController::class, 'qr'])->name('student.qrcode');
+
+// attendance
+Route::middleware('auth')->group(function () {
+
+    Route::get('/teacher/attendance/dashboard', [AttendanceController::class, 'dashboard'])
+        ->name('attendance.dashboard');
+
+});
+// Route::get('/teacher/attendance/dashboard', [AttendanceController::class, 'dashboard'])->name('attendance.dashboard');
+Route::get('teacher/attendance/scan', [AttendanceController::class, 'scan'])->name('attendance.scan');
+Route::post('teacher/attendance/mark', [AttendanceController::class, 'mark'])->name('attendance.mark');
+Route::get('/teacher/attendance/report/pdf', [AttendanceController::class, 'pdf'])->name('attendance.pdf');
+
 // exam route
 Route::get('/exam/start/{examId}', [ExamController::class, 'start'])
     ->name('student.exam.start');
@@ -155,7 +173,23 @@ Route::post('/exam/answer', [ExamController::class, 'answer'])
     ->name('student.exam.answer');
 
 Route::get('/exam/result/{id}', [\App\Http\Controllers\Student\ExamController::class, 'result'])
-    ->name('student.exam.result');    
+    ->name('student.exam.result'); 
+
+// face recognition handled by teacher    
+Route::get('/teacher/student/face/register/{id}', [AttendanceController::class, 'faceRegisterForm'])->name('face.register');
+Route::post('/teacher/student/face/register/{id}', [AttendanceController::class, 'saveFace'])->name('face.save');
+Route::get('teacher/attendance/face-scan', [AttendanceController::class, 'faceScan'])
+    ->name('attendance.face.scan');
+Route::get('/teacher/students/face-registration', [AttendanceController::class, 'studentFaceList'])
+    ->name('students.face.list');
+    
+// face recognition handled by school  
+Route::get('/school/student/face/register/{id}', [AttendanceController::class, 'schoolFaceRegisterForm'])->name('school.face.register');
+Route::post('/school/student/face/register/{id}', [AttendanceController::class, 'schoolSaveFace'])->name('school.face.save');
+Route::get('school/attendance/face-scan', [AttendanceController::class, 'schoolFaceScan'])
+    ->name('school.attendance.face.scan');
+Route::get('/school/students/face-registration', [AttendanceController::class, 'schoolStudentFaceList'])
+    ->name('school.students.face.list');     
 
 // auto submition route
 Route::get('/exam/submit-auto', [ExamController::class, 'autoSubmit'])

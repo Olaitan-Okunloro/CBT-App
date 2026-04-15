@@ -21,7 +21,9 @@ class StudentDetail extends Model
         'payment_expiry',
         'school_id',
         'class_id',
-        'teacher_id'
+        'teacher_id',
+        'face_photo',
+        'face_descriptor'
     ];
 
     protected $casts = [
@@ -31,9 +33,10 @@ class StudentDetail extends Model
     ];
 
     // Add this relationship
+
     public function user()
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id', 'id');
     }
 
     public function school()
