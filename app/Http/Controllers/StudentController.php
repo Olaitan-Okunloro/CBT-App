@@ -3,9 +3,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Exam;
-use App\Models\Result;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use App\Http\Controllers\Controller;
+use App\Models\StudentDetail;
 
 class StudentController extends Controller
 {
@@ -60,4 +61,5 @@ class StudentController extends Controller
         
         return view('student.take-exam', compact('exam'));
     }
+
 }

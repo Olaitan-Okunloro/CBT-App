@@ -153,4 +153,74 @@ class StudentController extends Controller
 
         return view('student.available-exams');
     }
+
+     /**
+     * Display results for a student
+     */
+    public function results(Request $request, $id = null)
+    {
+        // If ID is passed directly
+        if ($id) {
+            $student = Student::with('user')->findOrFail($id);
+        } 
+        // Or get from authenticated user
+        else {
+            $student = Student::where('user_id', auth()->id())->firstOrFail();
+        }
+
+        // Get results for this student
+        $results = Result::with('subject')
+            ->where('student_id', $student->id)
+            ->get();
+
+        return view('student.results.student-result', compact('student', 'results'));
+    }
+
+    public function profile()
+    {
+        $student = \App\Models\StudentDetail::with('user')
+            ->where('user_id', auth()->id())
+            ->first();
+
+        return view('student.profile', compact('student'));
+    }
+
+    public function changePassword()
+    {
+        return view('student.change-password');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'new_password' => 'required|min:6|confirmed'
+        ]);
+
+        $user = auth()->user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return back()->with('error', 'Current password is incorrect');
+        }
+
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'activity' => 'Changed Password'
+        ]);
+
+        return back()->with('success', 'Password changed successfully');
+    }
+
+    public function activityLog()
+    {
+        $logs = \App\Models\ActivityLog::where('user_id', auth()->id())
+            ->latest()
+            ->paginate(10);
+
+        return view('student.activity-log', compact('logs'));
+    }
+
 }

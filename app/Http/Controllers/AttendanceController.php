@@ -50,6 +50,11 @@ class AttendanceController extends Controller
                     'created_by' => auth()->id()
                 ]);
 
+                \App\Models\ActivityLog::create([
+                    'user_id' => auth()->id(),
+                    'activity' => $student->user->name . ' attendance marked'
+                ]);
+
                 $this->sendParentMail($student, 'checked in');
 
                 return response()->json([
@@ -85,7 +90,7 @@ class AttendanceController extends Controller
     // send mail to parent 
     private function sendParentMail($student, $status)
     {
-        if ($student->mail_sub != 1 || !$student->guardian_email) {
+        if ($student->email_sub != 1 || !$student->guardian_email) {
             return;
         }
 

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Payment;
 use App\Models\StudentDetail;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,19 +22,20 @@ class PaymentController extends Controller
     public function showPaymentPage()
     {
         $user = Auth::user();
-        
-        // If user already paid, redirect to dashboard
+
+        $main_sub = Subscription::first();
+
         if ($user->studentDetail && $user->studentDetail->has_paid) {
             return redirect()->route('dashboard')
                 ->with('info', 'Your payment is already completed.');
         }
-        
+
         return view('payment.index', [
             'user' => $user,
             'publicKey' => config('paystack.publicKey'),
-            'amount' => 200, // Registration fee in your currency
+            'amount' => $main_sub->sub_amount ?? 200,
             'email' => $user->email,
-            // 'reference' => 'PAY-' . Str::random(8) . '-' . time()
+            'main_sub' => $main_sub
         ]);
     }
 
@@ -334,5 +336,25 @@ class PaymentController extends Controller
         ]);
 
         return $pdf->download('receipt-'.$reference.'.pdf');
+    }
+
+    public function emailToggle()
+    {
+        $student = auth()->user()->studentDetail;
+
+        if ($student->email_sub == 1) {
+
+            $student->update([
+                'email_sub' => 0
+            ]);
+
+            return back()->with('success', 'Email subscription disabled');
+        }
+
+        session([
+            'payment_type' => 'email_subscription'
+        ]);
+
+        return redirect()->route('payment.show');
     }
 }

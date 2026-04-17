@@ -18,6 +18,7 @@ use App\Http\Controllers\Teacher\QuestionBankController;
 use App\Http\Controllers\AIQuestionController;
 use App\Http\Controllers\Admin\AdminAIQuestionController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\ResultController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -116,6 +117,9 @@ Route::get('/get-topics/{classId}/{subjectId}', function ($classId, $subjectId) 
         ->get();
 });
 
+Route::get('/teacher/results/create', [ResultController::class, 'create'])->name('results.create');
+Route::post('/teacher/results/store', [ResultController::class, 'store'])->name('results.store');
+
 // Route::get('/teacher/question-bank', [QuestionBankController::class, 'index'])
 //     ->name('teacher.question.bank');
 
@@ -152,6 +156,7 @@ Route::middleware('auth')->group(function () {
         ->name('attendance.dashboard');
 
 });
+
 // Route::get('/teacher/attendance/dashboard', [AttendanceController::class, 'dashboard'])->name('attendance.dashboard');
 Route::get('teacher/attendance/scan', [AttendanceController::class, 'scan'])->name('attendance.scan');
 Route::post('teacher/attendance/mark', [AttendanceController::class, 'mark'])->name('attendance.mark');
@@ -309,9 +314,29 @@ Route::middleware(['auth'])->prefix('student')->name('student.')->group(function
         ->name('exam.take');
 });
 
+
+// result checker
+Route::get('/student/check-result', [ResultController::class, 'checker'])->name('results.checker');
+Route::post('/student/check-result', [ResultController::class, 'showResult'])->name('results.show');
+
 // correction route
 Route::get('/exam/review/{id}', [ExamController::class, 'review'])
     ->name('student.exam.review');
+
+Route::get('/student/profile', [StudentController::class, 'profile'])
+    ->name('student.profile');
+    
+Route::get('/student/change-password', [StudentController::class, 'changePassword'])
+    ->name('student.password');
+
+Route::post('/student/change-password', [StudentController::class, 'updatePassword'])
+    ->name('student.password.update');
+    
+Route::get('/student/activity-log', [StudentController::class, 'activityLog'])
+    ->name('student.activity');  
+    
+Route::post('/student/email-toggle', [PaymentController::class, 'emailToggle'])
+    ->name('student.email.toggle');    
 
 // student route ends here    
 
@@ -325,11 +350,11 @@ Route::middleware(['auth','paid'])->group(function () {
 });
 
 // Profile routes (from Breeze)
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
+// Route::middleware('auth')->group(function () {
+//     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+//     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+//     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+// });
 
 // teacher route
 Route::middleware(['auth'])->prefix('school')->group(function(){
@@ -346,11 +371,11 @@ Route::middleware(['auth'])->prefix('school')->group(function(){
 });
 
 // Paystack webhook (no CSRF protection)
-Route::post('/payment/webhook', [PaymentController::class, 'webhook'])
-    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
-    ->name('payment.webhook');
+// Route::post('/payment/webhook', [PaymentController::class, 'webhook'])
+//     ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
+//     ->name('payment.webhook');
 
-Route::get('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback');
+// Route::get('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback');
 
 Route::middleware(['auth'])->prefix('teacher')->group(function(){
 

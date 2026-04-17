@@ -197,6 +197,11 @@ class ExamController extends Controller
             'status' => 'completed'
         ]);
 
+        \App\Models\ActivityLog::create([
+            'user_id' => auth()->id(),
+            'activity' => 'Completed CBT exam'
+        ]);
+
         session()->forget([
             'exam_questions',
             'attempt_id',

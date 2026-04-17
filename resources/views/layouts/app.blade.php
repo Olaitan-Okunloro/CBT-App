@@ -162,8 +162,8 @@
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('student.results') ? 'active' : '' }}" 
-                               href="{{ route('student.results') }}">
+                            <a class="nav-link {{ request()->routeIs('results.checker') ? 'active' : '' }}" 
+                               href="{{ route('results.checker') }}">
                                 <i class="fas fa-chart-bar me-1"></i>My Results
                             </a>
                         </li>
@@ -185,6 +185,11 @@
                                 <li>
                                     <a class="dropdown-item" href="{{ route('teacher.exams.create') }}">
                                         <i class="fas fa-plus me-2"></i>Create New Exam
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('results.create') }}">
+                                        <i class="fas fa-plus me-2"></i>Add Exam Score
                                     </a>
                                 </li>
                                 <li>
@@ -234,30 +239,6 @@
                                 </li>
                             </ul>
                         </li>
-
-                        <!-- <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle" 
-                               href="#" id="subjectsDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-book me-1"></i>Subjects
-                            </a>
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a class="dropdown-item" href="">
-                                        <i class="fas fa-list me-2"></i>All Subjects
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="">
-                                        <i class="fas fa-plus me-2"></i>Add Subject
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="">
-                                        <i class="fas fa-sitemap me-2"></i>Topics
-                                    </a>
-                                </li>
-                            </ul>
-                        </li> -->
 
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" 
@@ -533,20 +514,35 @@
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <a class="dropdown-item" href="{{ route('profile.edit') }}">
+                                    <a class="dropdown-item" href="{{ route('student.profile') }}">
                                         <i class="fas fa-user me-2"></i>Profile
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="#">
+                                    <a class="dropdown-item" href="{{ route('student.password') }}">
                                         <i class="fas fa-key me-2"></i>Change Password
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="#">
+                                    <a class="dropdown-item" href="{{ route('student.activity') }}">
                                         <i class="fas fa-clock me-2"></i>Activity Log
                                     </a>
                                 </li>
+                                <form method="POST" action="{{ route('student.email.toggle') }}">
+                                    @csrf
+
+                                    @if(auth()->user()->studentDetail->email_sub == 1)
+                                        <button class="btn btn-success">
+                                            <i class="fas fa-toggle-on me-2"></i>
+                                            Email Subscription ON
+                                        </button>
+                                    @else
+                                        <button class="btn btn-secondary">
+                                            <i class="fas fa-toggle-off me-2"></i>
+                                            Activate Email Alerts For Attendance
+                                        </button>
+                                    @endif
+                                </form>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form method="POST" action="{{ route('logout') }}">
