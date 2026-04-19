@@ -9,7 +9,6 @@ use App\Http\Controllers\School\StudentController;
 use App\Http\Controllers\School\SchoolController;
 use App\Http\Controllers\School\SchoolClassController;
 use App\Http\Controllers\School\TeacherSubjectController;
-use App\Http\Controllers\ChatController;
 use App\Http\Controllers\Student\ExamController;
 use App\Http\Controllers\Student\QRcodeController;
 use App\Http\Controllers\Student\LeaderboardController;
@@ -19,6 +18,8 @@ use App\Http\Controllers\AIQuestionController;
 use App\Http\Controllers\Admin\AdminAIQuestionController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ResultController;
+use App\Http\Controllers\ReferrerController;
+use App\Http\Controllers\BulkPaymentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -62,7 +63,7 @@ Route::middleware(['auth','verified', \App\Http\Middleware\CheckPayment::class])
 Route::get('/admin/analytics', [DashboardController::class, 'analytics'])
             ->name('dashboard.leaderboard');   
 
-//  bulk students upload
+// school route
 Route::get('/school/students/import', [StudentController::class,'importForm'])
     ->name('school.students.import');
 
@@ -72,6 +73,30 @@ Route::post('/school/students/import', [StudentController::class,'import'])
 // export credential
 Route::get('/school/students/download', [StudentController::class,'downloadCredentials'])
     ->name('school.students.download'); 
+
+Route::get('/school/bulk-payment', [BulkPaymentController::class, 'index'])
+    ->name('bulk.payment');
+
+Route::post('/school/bulk-payment/create', [BulkPaymentController::class, 'create'])
+    ->name('bulk.payment.create');
+    
+Route::get('/school/bulk-payment/pay/{id}', [BulkPaymentController::class, 'pay'])
+    ->name('bulk.payment.pay');
+
+Route::get('/school/bulk-payment/callback', [BulkPaymentController::class, 'callback'])
+    ->name('bulk.payment.callback');
+
+Route::get('/school/bulk-payment/history', [BulkPaymentController::class, 'history'])
+    ->name('bulk.payment.history');
+    
+Route::get('/school/bulk-payment/receipt/{id}', [BulkPaymentController::class, 'receipt'])
+    ->name('bulk.payment.receipt');
+    
+Route::get('/school/bulk-payment/analytics', [BulkPaymentController::class, 'analytics'])
+    ->name('bulk.payment.analytics');    
+    
+    
+// school route ends here    
 
 
 
@@ -335,8 +360,14 @@ Route::post('/student/change-password', [StudentController::class, 'updatePasswo
 Route::get('/student/activity-log', [StudentController::class, 'activityLog'])
     ->name('student.activity');  
     
-Route::post('/student/email-toggle', [PaymentController::class, 'emailToggle'])
-    ->name('student.email.toggle');    
+// Route::post('/student/email-toggle', [PaymentController::class, 'emailToggle'])
+//     ->name('student.email.toggle');
+    
+Route::get('/student/email-activate', [PaymentController::class, 'emailActivate'])
+    ->name('student.email.activate');
+
+Route::get('/student/email-disable', [PaymentController::class, 'emailDisable'])
+    ->name('student.email.disable');
 
 // student route ends here    
 
@@ -386,6 +417,11 @@ Route::middleware(['auth'])->prefix('teacher')->group(function(){
     // ->name('teacher.questions.store');
 
 });
+
+// referral route
+Route::get('/referrer/dashboard', [ReferrerController::class, 'dashboard'])
+    ->middleware('auth')
+    ->name('referrer.dashboard');
 
 // Authentication routes (from Breeze)
 require __DIR__.'/auth.php';

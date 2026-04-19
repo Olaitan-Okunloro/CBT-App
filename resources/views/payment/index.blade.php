@@ -14,7 +14,7 @@
 
                 <div class="card-body">
                     <div class="alert alert-info">
-                        <h5><i class="fas fa-info-circle me-2"></i>Registration Fee: <strong>₦{{ number_format($amount) }}</strong></h5>
+                        <h5><i class="fas fa-info-circle me-2"></i>{{ $title }}: <strong>₦{{ number_format($amount) }}</strong></h5>
                         <p class="mb-0">Make payment to activate your account and access all features including:</p>
                         <ul class="mt-2 mb-0">
                             <li>Access to all available exams</li>
@@ -60,8 +60,8 @@
                                     <h5><i class="fas fa-receipt me-2 text-success"></i>Payment Summary</h5>
                                     <table class="table table-sm">
                                         <tr>
-                                            <td>Registration Fee</td>
-                                            <td class="text-end">₦{{ number_format($amount) }}</td>
+                                            <td>{{ $title }}</td>
+                                            <td class="text-end">₦{{ number_format($amount,2) }}</td>
                                         </tr>
                                         <tr>
                                             <td>VAT (0%)</td>

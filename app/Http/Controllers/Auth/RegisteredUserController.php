@@ -18,6 +18,7 @@ use App\Models\SchoolDetail;
 use App\Models\School;
 use App\Models\ClassLevel;
 use Illuminate\Support\Str; // Add this for generating registration number
+use Illuminate\Support\Facades\DB;
 
 class RegisteredUserController extends Controller
 {
@@ -45,122 +46,115 @@ class RegisteredUserController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-            'phone' => ['required', 'string', 'max:20'],
-            'address' => ['nullable', 'string', 'max:255'],
-            'user_type' => ['required', 'in:student,teacher,school'],
-            'exam_type' => ['required', 'string'],
-            'school_id' => ['nullable', 'exists:schools,id'],
-            'class_level' => ['nullable', 'exists:classes,id'],
-            'teacher_school' => ['nullable', 'exists:schools,id']
+            'name'      => ['required', 'string', 'max:255'],
+            'email'     => ['required', 'email', 'max:255', 'unique:users'],
+            'phone'     => ['required'],
+            'password'  => ['required', 'confirmed', Rules\Password::defaults()],
+            'user_type' => ['required', 'in:student,school,referrer'],
         ]);
 
-        // Set exam type based on user type
-        if($request->user_type === 'teacher' || $request->user_type === 'school'){
-            $examType = 'GENERAL';
-        } else {
-            $examType = $request->exam_type;
-        }
+        $role = $request->user_type;
 
-        // Create User FIRST
         $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'phone' => $request->phone,
-            'exam_type' => $examType,
-            'role' => $request->user_type,
-            'is_active' => false
+            'name'      => $request->name,
+            'email'     => $request->email,
+            'phone'     => $request->phone,
+            'password'  => Hash::make($request->password),
+            'role'      => $role,
+            'is_active' => false,
+            'is_referrer' => $role == 'referrer' ? 1 : 0,
+            'referral_code' => $role == 'referrer'
+                ? rand(100000, 999999)
+                : null,
         ]);
-
-        \Log::info('User created', ['user_id' => $user->id, 'role' => $user->role]);
 
         /*
         |--------------------------------------------------------------------------
-        | SCHOOL REGISTRATION
+        | REFERRER
         |--------------------------------------------------------------------------
         */
-        if($request->user_type === 'school'){
-            // First, create the school record
+        if ($role == 'referrer') {
+            event(new Registered($user));
+            Auth::login($user);
+
+            DB::table('wallets')->insert([
+                'user_id' => $user->id,
+                'balance' => 0,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            return redirect()->route('referrer.dashboard')
+                ->with('success', 'Referrer account created successfully.');
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | SCHOOL
+        |--------------------------------------------------------------------------
+        */
+        if ($role == 'school') {
+
+            $usedCode = $request->school_referral_code;
+
+            $referrerId = null;
+
+            if ($usedCode && $usedCode != '246800') {
+                $referrer = User::where('referral_code', $usedCode)->first();
+                $referrerId = $referrer->id ?? null;
+            }
+
             $school = School::create([
                 'name' => $request->school_name,
                 'address' => $request->address,
                 'registration_number' => 'SCH' . strtoupper(Str::random(8)),
                 'email' => $request->email,
-                'phone' => $request->phone
+                'phone' => $request->phone,
+                'referral_code_used' => $usedCode,
+                'referrer_user_id' => $referrerId,
             ]);
-            
-            \Log::info('School created', ['school_id' => $school->id]);
 
-            // Then create school_details linking user to school
             SchoolDetail::create([
                 'user_id' => $user->id,
                 'school_id' => $school->id,
                 'has_paid' => true
             ]);
-            
-            \Log::info('SchoolDetail created', ['user_id' => $user->id, 'school_id' => $school->id]);
         }
 
         /*
         |--------------------------------------------------------------------------
-        | TEACHER REGISTRATION
+        | STUDENT
         |--------------------------------------------------------------------------
         */
-        if($request->user_type === 'teacher'){
-            TeacherDetail::create([
-                'user_id' => $user->id,
-                'school_id' => $request->teacher_school,
-                'has_paid' => true
-            ]);
-            
-            \Log::info('TeacherDetail created', ['user_id' => $user->id, 'school_id' => $request->teacher_school]);
-        }
+        if ($role == 'student') {
 
-        /*
-        |--------------------------------------------------------------------------
-        | STUDENT REGISTRATION
-        |--------------------------------------------------------------------------
-        */
-        if($request->user_type === 'student'){
+            $usedCode = $request->student_referral_code;
+
+            $referrerId = null;
+
+            if ($usedCode && $usedCode != '246800') {
+                $referrer = User::where('referral_code', $usedCode)->first();
+                $referrerId = $referrer->id ?? null;
+            }
+
             StudentDetail::create([
                 'user_id' => $user->id,
                 'registration_number' => 'STU' . strtoupper(Str::random(8)),
                 'school_id' => $request->school_id,
                 'class_id' => $request->class_level,
-                'has_paid' => false
-            ]);
-            
-            \Log::info('StudentDetail created', [
-                'user_id' => $user->id, 
-                'school_id' => $request->school_id,
-                'class_id' => $request->class_level
+                'has_paid' => false,
+                'referral_code_used' => $usedCode,
+                'referrer_user_id' => $referrerId
             ]);
         }
 
         event(new Registered($user));
-
         Auth::login($user);
 
-        // Redirect based on user type
-        if ($user->role === 'teacher') {
-            return redirect()->route('teacher.dashboard')
-                ->with('success', 'Welcome teacher! Your account has been created.');
+        if ($role == 'school') {
+            return redirect()->route('school.dashboard');
         }
 
-        if ($user->role === 'school') {
-            return redirect()->route('school.dashboard')
-                ->with('success', 'Welcome! Your school account has been created.');
-        }
-        
-        if ($user->role === 'student') {
-            return redirect()->route('payment.show')
-                ->with('success', 'Registration successful! Please complete payment to activate your account.');
-        }
-
-        // Fallback redirect
-        return redirect()->route('dashboard');
+        return redirect()->route('payment.show');
     }
 }

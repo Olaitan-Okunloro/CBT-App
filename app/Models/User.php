@@ -23,6 +23,8 @@ class User extends Authenticatable
         'address',
         'profile_photo',
         'is_active',
+        'is_referrer',
+        'referral_code'
     ];
 
     protected $hidden = [
@@ -70,5 +72,18 @@ class User extends Authenticatable
     public function school()
     {
         return $this->belongsToMany(School::class, 'school_details');
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($user) {
+
+            if ($user->is_referrer == 1 && empty($user->referral_code)) {
+
+                $user->referral_code = rand(100000,999999);
+            }
+        });
     }
 }

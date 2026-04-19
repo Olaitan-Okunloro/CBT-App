@@ -16,6 +16,7 @@ class StudentDetail extends Model
         'user_id',
         'registration_number',
         'has_paid',
+        'email_sub',
         'payment_reference',
         'payment_date',
         'payment_expiry',
@@ -23,7 +24,9 @@ class StudentDetail extends Model
         'class_id',
         'teacher_id',
         'face_photo',
-        'face_descriptor'
+        'face_descriptor',
+        'referrer_code_used',
+        'referral_user_id'
     ];
 
     protected $casts = [

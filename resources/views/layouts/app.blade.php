@@ -297,11 +297,6 @@
                                         <i class="fas fa-download me-2"></i>Export Results
                                     </a>
                                 </li>
-                                <li>
-                                    <a class="dropdown-item" href="{{ route('attendance.scan') }}">
-                                        <i class="fas fa-attendance me-1"></i>Attendance
-                                    </a>
-                                </li>
                             </ul>
                         </li>
 
@@ -397,6 +392,34 @@
                                 <li>
                                     <a class="dropdown-item" href="#">
                                         <i class="fas fa-cog me-2"></i>Settings
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="schoolDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-money-bill-wave me-1"></i>Payment
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('dashboard') }}">
+                                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('bulk.payment') }}">
+                                        <i class="fas fa-credit-card me-2"></i>Bulk Payment
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('bulk.payment.history') }}">
+                                        <i class="fas fa-hand-holding-usd me-2"></i>Payment History
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('bulk.payment.analytics') }}">
+                                        <i class="fas fa-magnifying-glass-chart me-2"></i>Payment Analytics
                                     </a>
                                 </li>
                             </ul>
@@ -528,21 +551,23 @@
                                         <i class="fas fa-clock me-2"></i>Activity Log
                                     </a>
                                 </li>
-                                <form method="POST" action="{{ route('student.email.toggle') }}">
-                                    @csrf
-
+                                    @if(auth()->user()->studentDetail)
                                     @if(auth()->user()->studentDetail->email_sub == 1)
-                                        <button class="btn btn-success">
-                                            <i class="fas fa-toggle-on me-2"></i>
-                                            Email Subscription ON
-                                        </button>
+
+                                        <a href="{{ route('student.email.disable') }}"
+                                        class="btn btn-success">
+                                        <i class="fas fa-toggle-on"></i> OFF Attendance Notification
+                                        </a>
+
                                     @else
-                                        <button class="btn btn-secondary">
-                                            <i class="fas fa-toggle-off me-2"></i>
-                                            Activate Email Alerts For Attendance
-                                        </button>
+
+                                        <a href="{{ route('student.email.activate') }}"
+                                        class="btn btn-secondary">
+                                        <i class="fas fa-toggle-off"></i> ON Attendance Notification 
+                                        </a>
+
                                     @endif
-                                </form>
+                                @endif
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
                                     <form method="POST" action="{{ route('logout') }}">

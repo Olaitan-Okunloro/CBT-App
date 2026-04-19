@@ -7,6 +7,8 @@ use App\Models\Payment;
 use App\Models\StudentDetail;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Models\Commission;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,122 +21,137 @@ class PaymentController extends Controller
     /**
      * Show the payment page
      */
+
     public function showPaymentPage()
     {
         $user = Auth::user();
 
-        $main_sub = Subscription::first();
+        $sub = Subscription::first();
 
-        if ($user->studentDetail && $user->studentDetail->has_paid) {
+        $type = session('payment_type', 'main');
+
+        if ($type == 'email_subscription') {
+
+            $amount = $sub->email_sub ?? 0;
+            $title  = 'Email Notification Subscription';
+
+        } else {
+
+            $amount = $sub->sub_amount ?? 200;
+            $title  = 'Main Registration Subscription';
+        }
+
+        if (
+            $user->studentDetail &&
+            $user->studentDetail->has_paid &&
+            $type != 'email_subscription'
+        ) {
             return redirect()->route('dashboard')
                 ->with('info', 'Your payment is already completed.');
         }
 
-        return view('payment.index', [
-            'user' => $user,
-            'publicKey' => config('paystack.publicKey'),
-            'amount' => $main_sub->sub_amount ?? 200,
-            'email' => $user->email,
-            'main_sub' => $main_sub
-        ]);
+        return view('payment.index', compact(
+            'user',
+            'amount',
+            'title'
+        ));
     }
 
     public function initialize(Request $request)
     {
-        // Log the start of initialization
-        \Log::info('========== INITIALIZE METHOD CALLED ==========');
-        \Log::info('Request data:', $request->all());
-        
-        $user = Auth::user();
-        \Log::info('User:', ['id' => $user->id, 'email' => $user->email]);
-
-        // 🔒 Prevent duplicate payment
-        if ($user->studentDetail && $user->studentDetail->has_paid) {
-            return response()->json([
-                'success' => false,
-                'message' => 'You have already completed your registration payment.'
-            ], 400);
-        }
-
-        // Check if a pending payment already exists
-        $existingPayment = Payment::where('user_id', $user->id)
-            ->where('status', 'pending')
-            ->first();
-
-        if ($existingPayment) {
-
-            return response()->json([
-                'success' => true,
-                'authorization_url' => $this->initializePaystackPayment($user, $existingPayment->reference, $request->amount)
-            ]);
-        }
-
         try {
-            // Generate reference
-            $reference = 'PAY-' . Str::random(8) . '-' . time();
-            \Log::info('Generated reference:', ['reference' => $reference]);
 
-            // ATTEMPT TO CREATE PAYMENT RECORD
-            \Log::info('Attempting to create payment record...');
-            
-            $paymentData = [
+            $user = Auth::user();
+
+            $sub = Subscription::first();
+
+            $type = session('payment_type', 'main');
+
+            // Determine amount
+            if ($type == 'email_subscription') {
+                $amount = $sub->email_sub ?? 0;
+            } else {
+                $amount = $sub->sub_amount ?? 200;
+            }
+
+            // Prevent duplicate MAIN payment only
+            if (
+                $user->studentDetail &&
+                $user->studentDetail->has_paid &&
+                $type != 'email_subscription'
+            ) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Main subscription already completed.'
+                ], 400);
+            }
+
+            // Prevent duplicate EMAIL payment
+            if (
+                $user->studentDetail &&
+                $user->studentDetail->email_sub == 1 &&
+                $type == 'email_subscription'
+            ) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Email subscription already active.'
+                ], 400);
+            }
+
+            $reference = 'PAY-' . Str::random(8) . '-' . time();
+
+            Payment::where('user_id', $user->id)
+                ->where('status', 'pending')
+                ->delete();
+
+            $payment = Payment::create([
                 'user_id' => $user->id,
-                'amount' => $request->amount,
+                'amount' => $amount,
                 'reference' => $reference,
                 'status' => 'pending',
                 'payment_method' => 'Paystack',
-                'metadata' => json_encode(['init_time' => now()->toDateTimeString()])
-            ];
-            
-            \Log::info('Payment data:', $paymentData);
-            
-            $payment = Payment::create($paymentData);
-            
-            \Log::info('✓ PAYMENT RECORD CREATED:', [
-                'id' => $payment->id,
-                'reference' => $payment->reference
+                'metadata' => json_encode([
+                    'payment_type' => $type
+                ])
             ]);
-        
-        // Call Paystack API
-                $response = Http::withHeaders([
-                    'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET_KEY'),
-                    'Content-Type' => 'application/json',
-                ])->post('https://api.paystack.co/transaction/initialize', [
-                    'email' => $user->email,
-                    'amount' => intval($request->amount * 100),
-                    'reference' => $reference,
-                    'callback_url' => route('payment.callback'),
-                    'metadata' => [
-                        'user_id' => $user->id,
-                        'payment_id' => $payment->id
-                    ]
+
+            $response = Http::withHeaders([
+                'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET_KEY'),
+                'Content-Type' => 'application/json',
+            ])->post('https://api.paystack.co/transaction/initialize', [
+                'email' => $user->email,
+                'amount' => intval($amount * 100),
+                'reference' => $reference,
+                'callback_url' => route('payment.callback'),
+                'metadata' => [
+                    'user_id' => $user->id,
+                    'payment_id' => $payment->id,
+                    'payment_type' => $type
+                ]
+            ]);
+
+            $data = $response->json();
+
+            if ($response->successful() && $data['status']) {
+
+                return response()->json([
+                    'success' => true,
+                    'authorization_url' => $data['data']['authorization_url']
                 ]);
+            }
 
-                $responseData = $response->json();
+            $payment->update(['status' => 'failed']);
 
-                if ($response->successful() && $responseData['status']) {
-                    return response()->json([
-                        'success' => true,
-                        'authorization_url' => $responseData['data']['authorization_url'],
-                        'reference' => $reference
-                    ]);
-                } else {
-                    $payment->update(['status' => 'failed']);
-                    return response()->json([
-                        'success' => false,
-                        'message' => $responseData['message'] ?? 'Payment initialization failed'
-                    ], 422);
-                }
-            
-        } catch (\Exception $e) {
-            \Log::error('✗ ERROR in initialize:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-            
             return response()->json([
                 'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
+                'message' => $data['message'] ?? 'Payment initialization failed'
+            ], 422);
+
+        } catch (\Exception $e) {
+
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
             ], 500);
         }
     }
@@ -196,31 +213,53 @@ class PaymentController extends Controller
             $responseData = $response->json();
 
             if ($response->successful() && $responseData['data']['status'] === 'success') {
-                
-                // Update payment record
+
                 $payment->update([
                     'status' => 'success',
                     'transaction_id' => $responseData['data']['id'],
                     'paid_at' => now()
                 ]);
 
-                // Update user and student details
                 $user = $payment->user;
-                $user->update(['is_active' => true]);
-                
-                
-                if ($user->studentDetail) {
-                    $user->studentDetail->update([
-                        'has_paid' => true,
-                        'payment_reference' => $reference,
-                        'payment_date' => now(),
-                        'payment_expiry' => now()->addYear()
-                    ]);
+
+                $user->update([
+                    'is_active' => true
+                ]);
+
+                $student = $user->studentDetail;
+
+                $meta = json_decode($payment->metadata, true);
+
+                $type = $meta['payment_type']
+                    ?? session('payment_type')
+                    ?? 'main';
+
+                if ($student) {
+
+                    if ($type == 'email_subscription') {
+
+                        $student->update([
+                            'email_sub' => 1
+                        ]);
+
+                    } else {
+
+                        $student->update([
+                            'has_paid' => 1,
+                            'payment_reference' => $reference,
+                            'payment_date' => now(),
+                            'payment_expiry' => now()->addYear()
+                        ]);
+
+                        $this->creditReferralCommission($student, $payment);
+                    }
                 }
+
+                session()->forget('payment_type');
 
                 return redirect()->route('payment.success')
                     ->with('success', 'Payment successful!')
-                    ->with('reference',$reference);
+                    ->with('reference', $reference);
             } else {
                 $payment->update(['status' => 'failed']);
                 return redirect()->route('payment.cancel')
@@ -306,6 +345,8 @@ class PaymentController extends Controller
                     'paid_at' => now()
                 ]);
 
+                $this->creditReferralCommission($user->studentDetail, $payment);
+
                 $user = $payment->user;
 
                 $user->update([
@@ -313,13 +354,25 @@ class PaymentController extends Controller
                 ]);
 
                 if ($user->studentDetail) {
+                    $meta = json_decode($payment->metadata, true);
 
-                    $user->studentDetail->update([
-                        'has_paid' => true,
-                        'payment_reference' => $payment->reference,
-                        'payment_date' => now(),
-                        'payment_expiry' => now()->addYear()
-                    ]);
+                    $type = $meta['payment_type'] ?? 'main';
+
+                    if ($type == 'email_subscription') {
+
+                        $user->studentDetail->update([
+                            'email_sub' => 1
+                        ]);
+
+                    } else {
+
+                        $user->studentDetail->update([
+                            'has_paid' => 1,
+                            'payment_reference' => $payment->reference,
+                            'payment_date' => now(),
+                            'payment_expiry' => now()->addYear()
+                        ]);
+                    }
                 }
             });
         }
@@ -342,6 +395,10 @@ class PaymentController extends Controller
     {
         $student = auth()->user()->studentDetail;
 
+        if (!$student) {
+            return back()->with('error', 'Student record not found');
+        }
+
         if ($student->email_sub == 1) {
 
             $student->update([
@@ -355,6 +412,70 @@ class PaymentController extends Controller
             'payment_type' => 'email_subscription'
         ]);
 
-        return redirect()->route('payment.show');
+        return redirect('/payment');
+    }
+
+
+    public function emailActivate()
+    {
+        session(['payment_type' => 'email_subscription']);
+
+        return redirect('/payment');
+    }
+
+        public function emailDisable()
+        {
+            auth()->user()->studentDetail->update([
+                'email_sub' => 0
+            ]);
+
+            return back()->with('success', 'Email subscription disabled');
+        }
+
+    private function creditReferralCommission($student, $payment)
+    {
+        $sub = \App\Models\Subscription::first();
+
+        $mainAmount = $sub->sub_amount ?? 0;
+
+        $commission = ($mainAmount * 20) / 100;
+
+        $referrerId = null;
+
+        $type = null;
+
+        // External direct student referral
+        if (!empty($student->referrer_user_id)) {
+
+            $referrerId = $student->referrer_user_id;
+            $type = 'student';
+
+        } elseif ($student->school_id) {
+
+            $school = \App\Models\School::find($student->school_id);
+
+            if ($school && !empty($school->referrer_user_id)) {
+                $referrerId = $school->referrer_user_id;
+                $type = 'school';
+            }
+        }
+
+        if ($referrerId) {
+
+            $referrer = \App\Models\User::find($referrerId);
+
+            if ($referrer) {
+
+                $referrer->increment('wallet_balance', $commission);
+
+                Commission::create([
+                    'referrer_id' => $referrerId,
+                    'student_id' => $student->id,
+                    'payment_id' => $payment->id,
+                    'amount' => $commission,
+                    'type' => $type
+                ]);
+            }
+        }
     }
 }

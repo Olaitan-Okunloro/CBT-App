@@ -39,6 +39,10 @@ class AuthenticatedSessionController extends Controller
             return redirect()->route('teacher.dashboard');
         }
 
+        if($user->role === 'referrer'){
+            return redirect()->route('referrer.dashboard');
+        }
+
         return redirect()->route('dashboard'); // fallback
     }
 

@@ -15,7 +15,7 @@
 
                 <div class="card-body text-center">
 
-                    <video id="video" width="500" height="380" autoplay muted></video>
+                    <video id="video" width="300" height="280" autoplay muted></video>
 
                     <canvas id="canvas" style="display:none;"></canvas>
 

@@ -18,7 +18,7 @@ class ResultController extends Controller
 
         $subjects = \App\Models\Subject::all();
 
-        return view('results.create', compact(
+        return view('teacher.results.create', compact(
             'students',
             'subjects'
         ));
