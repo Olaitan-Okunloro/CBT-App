@@ -6,7 +6,12 @@ use Illuminate\Database\Eloquent\Model;
 
 class School extends Model
 {
-    protected $fillable = ['name','address', 'registration_number'];
+    protected $fillable = ['name',
+    'address', 
+    'registration_number',
+    'referrer_code_used',
+    'referral_user_id'
+    ];
 
     public function schoolDetails()
     {

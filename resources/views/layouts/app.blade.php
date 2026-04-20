@@ -417,6 +417,7 @@
                                         <i class="fas fa-hand-holding-usd me-2"></i>Payment History
                                     </a>
                                 </li>
+                                
                                 <li>
                                     <a class="dropdown-item" href="{{ route('bulk.payment.analytics') }}">
                                         <i class="fas fa-magnifying-glass-chart me-2"></i>Payment Analytics
@@ -426,6 +427,75 @@
                         </li>
                         @endif
 
+                        @if(auth()->user()->role == 'referrer')
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle"
+                            href="#"
+                            id="referrerDropdown"
+                            role="button"
+                            data-bs-toggle="dropdown">
+
+                                <i class="fas fa-hand-holding-dollar me-1"></i>Referrer
+                            </a>
+
+                            <ul class="dropdown-menu">
+
+                                <li>
+                                    <a class="dropdown-item"
+                                    href="{{ route('referrer.dashboard') }}">
+                                        <i class="fas fa-gauge-high me-2"></i>Dashboard
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item"
+                                    href="{{ route('referrer.dashboard') }}">
+                                        <i class="fas fa-wallet me-2"></i>Wallet
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item"
+                                    href="{{ route('referrer.dashboard') }}">
+                                        <i class="fas fa-users me-2"></i>My Referrals
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item"
+                                    href="{{ route('referrer.withdraw') }}">
+                                        <i class="fas fa-money-bill-transfer me-2"></i>Withdraw Funds
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item"
+                                    href="{{ route('referrer.withdraw.history') }}">
+                                        <i class="fas fa-clock-rotate-left me-2"></i>
+                                        Withdrawal History
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item"
+                                    href="{{ route('referrer.analytics') }}">
+                                        <i class="fas fa-chart-line me-2"></i>
+                                        Analytics
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item"
+                                    href="{{ route('referrer.settings') }}">
+                                        <i class="fas fa-cog me-2"></i>
+                                        Settings
+                                    </a>
+                                </li>
+
+                            </ul>
+                        </li>
+                        @endif
                         <!-- Admin Links (if needed) -->
                         @if(auth()->user()->role == 'admin')
                         <li class="nav-item dropdown">
@@ -461,6 +531,8 @@
                                 </li>
                             </ul>
                         </li>
+
+                        
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-cog me-1"></i>Admin
@@ -488,6 +560,66 @@
                                 </li>
                             </ul>
                         </li>
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle"
+                            href="#"
+                            id="referrerDropdown"
+                            role="button"
+                            data-bs-toggle="dropdown">
+
+                                <i class="fas fa-hand-holding-dollar me-1"></i>Referrer
+                            </a>
+
+                            <ul class="dropdown-menu">
+
+                                <li>
+                                    <a class="dropdown-item"
+                                    href="{{ route('dashboard') }}">
+                                        <i class="fas fa-gauge-high me-2"></i>Dashboard
+                                    </a>
+                                </li>
+
+                                <!-- <li>
+                                    <a class="dropdown-item"
+                                    href="{{ route('referrer.dashboard') }}">
+                                        <i class="fas fa-wallet me-2"></i>Wallet
+                                    </a>
+                                </li> -->
+
+                                <li>
+                                    <a class="dropdown-item"
+                                    href="{{ route('admin.withdrawals') }}">
+                                        <i class="fas fa-money-bill-transfer me-2"></i>Withdrawals
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item"
+                                    href="{{ route('referrer.withdraw.history') }}">
+                                        <i class="fas fa-clock-rotate-left me-2"></i>
+                                        Withdrawal History
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item"
+                                    href="{{ route('referrer.analytics') }}">
+                                        <i class="fas fa-chart-line me-2"></i>
+                                        Analytics
+                                    </a>
+                                </li>
+
+                                <li>
+                                    <a class="dropdown-item"
+                                    href="{{ route('referrer.settings') }}">
+                                        <i class="fas fa-cog me-2"></i>
+                                        Settings
+                                    </a>
+                                </li>
+
+                            </ul>
+                        </li>
                         @endif
                     </ul>
 
@@ -495,34 +627,107 @@
                     <ul class="navbar-nav ms-auto">
                         <!-- Notifications -->
                         <li class="nav-item dropdown me-2">
-                            <a class="nav-link position-relative" href="#" id="notificationsDropdown" role="button" data-bs-toggle="dropdown">
+                            @php
+                            $notifications = DB::table('activity_logs')
+                                ->where('user_id', auth()->id())
+                                ->latest()
+                                ->take(5)
+                                ->get();
+
+                            $unreadCount = DB::table('activity_logs')
+                                ->where('user_id', auth()->id())
+                                ->where('is_read', 0)
+                                ->count();
+                        @endphp
+
+                        <li class="nav-item dropdown me-2">
+
+                            <a class="nav-link position-relative"
+                            href="#"
+                            id="notificationsDropdown"
+                            role="button"
+                            data-bs-toggle="dropdown">
+
                                 <i class="fas fa-bell"></i>
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
-                                    3
-                                </span>
+
+                                @if($unreadCount > 0)
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+                                        style="font-size:0.6rem;">
+                                        {{ $unreadCount }}
+                                    </span>
+                                @endif
+
                             </a>
-                            <div class="dropdown-menu dropdown-menu-end" style="width: 300px;">
+
+                            <div class="dropdown-menu dropdown-menu-end p-0"
+                                style="width:320px;">
+
                                 <div class="dropdown-header d-flex justify-content-between align-items-center">
+
                                     <span>Notifications</span>
-                                    <small><a href="#">Mark all as read</a></small>
+
+                                    <small>
+                                        <a href="{{ route('notifications.read') }}">
+                                            Mark all as read
+                                        </a>
+                                    </small>
+
                                 </div>
-                                <div class="dropdown-item-text">
-                                    <small class="text-muted">New student registered</small>
+
+                                <div class="dropdown-divider m-0"></div>
+
+                                @forelse($notifications as $note)
+
+                                    <div class="dropdown-item-text py-2 px-3">
+
+                                        <small class="d-block">
+                                            {{ $note->activity }}
+                                        </small>
+
+                                        <small class="text-muted">
+                                            {{ \Carbon\Carbon::parse($note->created_at)->diffForHumans() }}
+                                        </small>
+
+                                    </div>
+
+                                @empty
+
+                                    <div class="dropdown-item-text text-center py-3 text-muted">
+                                        No notifications
+                                    </div>
+
+                                @endforelse
+
+                                <div class="dropdown-divider m-0"></div>
+
+                                <div class="text-center py-2">
+                                    <a href="{{ route('referrer.activity') }}"
+                                    class="small text-decoration-none">
+                                        View all
+                                    </a>
                                 </div>
-                                <div class="dropdown-item-text">
-                                    <small class="text-muted">Exam "Mathematics Test" completed</small>
-                                </div>
-                                <div class="dropdown-divider"></div>
-                                <div class="text-center">
-                                    <a href="#" class="text-decoration-none small">View all</a>
-                                </div>
+
                             </div>
+
+                        </li>
                         </li>
 
                         <!-- User Profile Dropdown -->
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-user-circle fa-lg me-1"></i>
+                                @if(Auth::user()->profile_photo)
+
+                                    <img src="{{ asset('storage/profile/' . Auth::user()->profile_photo) }}"
+                                        width="34"
+                                        height="34"
+                                        class="rounded-circle me-2"
+                                        style="object-fit:cover;">
+
+                                @else
+
+                                    <i class="fas fa-user-circle fa-lg me-1"></i>
+
+                                @endif
                                 <span>{{ Auth::user()->name }}</span>
                                 @if(auth()->user()->role == 'teacher')
                                     <span class="badge bg-light text-dark ms-2" style="font-size: 0.6rem;">Teacher</span>
@@ -536,21 +741,44 @@
                                     </div>
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <a class="dropdown-item" href="{{ route('student.profile') }}">
-                                        <i class="fas fa-user me-2"></i>Profile
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="{{ route('student.password') }}">
-                                        <i class="fas fa-key me-2"></i>Change Password
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="{{ route('student.activity') }}">
-                                        <i class="fas fa-clock me-2"></i>Activity Log
-                                    </a>
-                                </li>
+                                @php
+                                $role = auth()->user()->role;
+                                $profileRoute = match($role) {
+                                    'student'   => 'student.profile',
+                                    'referrer'  => 'referrer.profile',
+                                    default     => 'dashboard'
+                                };
+
+                                $passwordRoute = match($role) {
+                                    'student'   => 'student.password',
+                                    'referrer'  => 'referrer.password',
+                                    default     => 'dashboard'
+                                };
+
+                                $activityRoute = match($role) {
+                                    'student'   => 'student.activity',
+                                    'referrer'  => 'referrer.activity',
+                                    default     => 'dashboard'
+                                };
+                            @endphp
+
+                            <li>
+                                <a class="dropdown-item" href="{{ route($profileRoute) }}">
+                                    <i class="fas fa-user me-2"></i>Profile
+                                </a>
+                            </li>
+
+                            <li>
+                                <a class="dropdown-item" href="{{ route($passwordRoute) }}">
+                                    <i class="fas fa-key me-2"></i>Change Password
+                                </a>
+                            </li>
+
+                            <li>
+                                <a class="dropdown-item" href="{{ route($activityRoute) }}">
+                                    <i class="fas fa-clock me-2"></i>Activity Log
+                                </a>
+                            </li>
                                     @if(auth()->user()->studentDetail)
                                     @if(auth()->user()->studentDetail->email_sub == 1)
 

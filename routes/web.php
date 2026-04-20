@@ -32,6 +32,16 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/notifications/read', function () {
+
+    DB::table('activity_logs')
+        ->where('user_id', auth()->id())
+        ->update(['is_read' => 1]);
+
+    return back();
+
+})->name('notifications.read');
+
 /*
 |--------------------------------------------------------------------------
 | Protected Routes (MUST PAY)
@@ -51,17 +61,39 @@ Route::middleware(['auth','verified', \App\Http\Middleware\CheckPayment::class])
             ->name('dashboard');
     });
 
-    // admin dashboard
+    
+});
+
+// admin route starts here
+
+// admin dashboard
     Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/dashboard', [DashboardController::class, 'admin'])
             ->name('dashboard');
  
     });
+Route::prefix('admin')->middleware('auth')->group(function () {
+
+    Route::get('/withdrawals', [App\Http\Controllers\DashboardController::class, 'withdrawals'])
+        ->name('admin.withdrawals');
+
+    Route::post('/withdrawals/{id}/approve', [App\Http\Controllers\DashboardController::class, 'approveWithdrawal'])
+        ->name('admin.withdraw.approve');
+
+    Route::post('/withdrawals/{id}/reject', [App\Http\Controllers\DashboardController::class, 'rejectWithdrawal'])
+        ->name('admin.withdraw.reject');
+
+    Route::post('/withdrawals/{id}/paid', [App\Http\Controllers\DashboardController::class, 'paidWithdrawal'])
+        ->name('admin.withdraw.paid');
 });
 
 Route::get('/admin/analytics', [DashboardController::class, 'analytics'])
-            ->name('dashboard.leaderboard');   
+            ->name('dashboard.leaderboard');
+
+// admin route ends here
+
+
 
 // school route
 Route::get('/school/students/import', [StudentController::class,'importForm'])
@@ -94,8 +126,6 @@ Route::get('/school/bulk-payment/receipt/{id}', [BulkPaymentController::class, '
     
 Route::get('/school/bulk-payment/analytics', [BulkPaymentController::class, 'analytics'])
     ->name('bulk.payment.analytics');    
-    
-    
 // school route ends here    
 
 
@@ -103,8 +133,6 @@ Route::get('/school/bulk-payment/analytics', [BulkPaymentController::class, 'ana
 
 
 // teacher's routes start here
-
-// Teacher dashboard  
 Route::middleware(['auth'])->prefix('teacher')->name('teacher.')->group(function () {
     Route::get('/dashboard', [TeacherController::class, 'dashboard'])->name('dashboard');
 });
@@ -422,6 +450,39 @@ Route::middleware(['auth'])->prefix('teacher')->group(function(){
 Route::get('/referrer/dashboard', [ReferrerController::class, 'dashboard'])
     ->middleware('auth')
     ->name('referrer.dashboard');
+
+Route::get('/referrer/withdraw', [ReferrerController::class, 'withdrawForm'])
+    ->name('referrer.withdraw');
+
+Route::post('/referrer/withdraw', [ReferrerController::class, 'submitWithdraw'])
+    ->name('referrer.withdraw.submit');
+    
+Route::get('/referrer/profile', [ReferrerController::class, 'profile'])
+    ->name('referrer.profile');
+
+Route::post('/referrer/profile', [ReferrerController::class, 'updateProfile'])
+    ->name('referrer.profile.update');
+    
+Route::get('/referrer/password', [ReferrerController::class, 'password'])
+    ->name('referrer.password');
+
+Route::post('/referrer/password', [ReferrerController::class, 'updatePassword'])
+    ->name('referrer.password.update');
+    
+Route::get('/referrer/activity', [ReferrerController::class, 'activity'])
+    ->name('referrer.activity');    
+
+Route::get('/referrer/withdraw-history', [ReferrerController::class, 'withdrawHistory'])
+    ->name('referrer.withdraw.history');
+    
+Route::get('/referrer/analytics', [ReferrerController::class, 'analytics'])
+    ->name('referrer.analytics');
+    
+Route::get('/referrer/settings', [ReferrerController::class, 'settings'])
+    ->name('referrer.settings');
+
+Route::post('/referrer/settings', [ReferrerController::class, 'updateSettings'])
+    ->name('referrer.settings.update');    
 
 // Authentication routes (from Breeze)
 require __DIR__.'/auth.php';

@@ -4,6 +4,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+
+use App\Models\Withdrawal;
+use Illuminate\Support\Facades\DB;
 use App\Models\Question;
 use App\Models\StudentDetail;
 use App\Models\TeacherDetail;
@@ -29,6 +32,8 @@ class DashboardController extends Controller
                 return redirect()->route('school.dashboard');
             case 'admin':
                 return redirect()->route('admin.dashboard');
+            case 'referrer':
+                return redirect()->route('referrer.dashboard');  
             default:
                 return redirect()->route('login');
         }
@@ -94,5 +99,84 @@ class DashboardController extends Controller
             'totalAttempts',
             'averageScore'
         ));
+    }
+
+    public function withdrawals()
+    {
+        $rows = Withdrawal::latest()->paginate(15);
+
+        $pending = Withdrawal::where('status', 'pending')->count();
+        $approved = Withdrawal::where('status', 'approved')->count();
+        $paid = Withdrawal::where('status', 'paid')->count();
+
+        $requestedAmount = Withdrawal::sum('amount');
+        $paidAmount = Withdrawal::where('status', 'paid')->sum('amount');
+
+        return view('admin.withdrawals', compact(
+            'rows',
+            'pending',
+            'approved',
+            'paid',
+            'requestedAmount',
+            'paidAmount'
+        ));
+    }
+
+    public function approveWithdrawal($id)
+    {
+        $row = Withdrawal::findOrFail($id);
+
+        $row->update([
+            'status' => 'approved'
+        ]);
+
+        DB::table('activity_logs')->insert([
+            'user_id' => $row->user_id,
+            'activity' => 'Withdrawal approved',
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        return back()->with('success', 'Withdrawal approved');
+    }
+
+    public function rejectWithdrawal($id)
+    {
+        $row = Withdrawal::findOrFail($id);
+
+        $row->update([
+            'status' => 'rejected'
+        ]);
+
+        DB::table('wallets')
+            ->where('user_id', $row->user_id)
+            ->increment('balance', $row->amount);
+
+        DB::table('activity_logs')->insert([
+            'user_id' => $row->user_id,
+            'activity' => 'Withdrawal rejected and funds returned',
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        return back()->with('success', 'Withdrawal rejected');
+    }
+
+    public function paidWithdrawal($id)
+    {
+        $row = Withdrawal::findOrFail($id);
+
+        $row->update([
+            'status' => 'paid'
+        ]);
+
+        DB::table('activity_logs')->insert([
+            'user_id' => $row->user_id,
+            'activity' => 'Withdrawal paid successfully',
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        return back()->with('success', 'Marked as paid');
     }
 }

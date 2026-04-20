@@ -38,7 +38,7 @@
 
     <div class="row g-3 mb-4">
 
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card shadow-sm text-center">
                 <div class="card-body">
                     <h6>Referred Students</h6>
@@ -47,7 +47,7 @@
             </div>
         </div>
 
-        <div class="col-md-6">
+        <div class="col-md-4">
             <div class="card shadow-sm text-center">
                 <div class="card-body">
                     <h6>Referred Schools</h6>
@@ -55,6 +55,27 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-md-4">
+    <div class="card shadow-sm border-0 text-center">
+        <div class="card-body">
+
+            <small class="text-muted">Referral Code</small>
+
+            <h2 class="fw-bold text-success mt-2">
+                {{ $referrer_code }}
+            </h2>
+
+            <button
+                class="btn btn-sm btn-outline-success mt-2"
+                onclick="navigator.clipboard.writeText('{{ $referrer_code }}')">
+
+                <i class="fas fa-copy me-1"></i>Copy
+            </button>
+
+        </div>
+    </div>
+</div>
 
     </div>
 

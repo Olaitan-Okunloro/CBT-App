@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\StudentDetail;
 use App\Models\Subscription;
+use App\Models\Commission;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -126,6 +127,15 @@ class BulkPaymentController extends Controller
                 'payment_expiry' => now()->addYear()
             ]);
 
+        foreach ($students as $studentId) {
+
+            $student = StudentDetail::find($studentId);
+
+            if ($student) {
+                $this->creditReferralCommission($student, $bulk);
+            }
+        }
+
         return redirect()->route('school.dashboard')
             ->with('success', 'Bulk payment successful. Students activated.');
     }
@@ -182,5 +192,64 @@ class BulkPaymentController extends Controller
             'totalPayments',
             'monthly'
         ));
+    }
+
+    private function creditReferralCommission($student, $bulk)
+    {
+        $subscription = Subscription::first();
+
+        $mainAmount = $subscription->sub_amount ?? 0;
+
+        $commission = ($mainAmount * 20) / 100;
+
+        $referrerId = null;
+        $type = null;
+
+        if (!empty($student->referral_user_id)) {
+
+            $referrerId = $student->referral_user_id;
+            $type = 'student';
+
+        } elseif ($student->school_id) {
+
+            $school = \App\Models\School::find($student->school_id);
+
+            if ($school && !empty($school->referral_user_id)) {
+                $referrerId = $school->referral_user_id;
+                $type = 'school';
+            }
+        }
+
+        if (!$referrerId) {
+            return;
+        }
+
+        $wallet = DB::table('wallets')
+            ->where('user_id', $referrerId)
+            ->first();
+
+        if ($wallet) {
+
+            DB::table('wallets')
+                ->where('user_id', $referrerId)
+                ->increment('balance', $commission);
+
+        } else {
+
+            DB::table('wallets')->insert([
+                'user_id' => $referrerId,
+                'balance' => $commission,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
+
+        Commission::create([
+            'referrer_id' => $referrerId,
+            'student_id' => $student->id,
+            'payment_id' => $bulk->id,
+            'amount' => $commission,
+            'type' => $type
+        ]);
     }
 }

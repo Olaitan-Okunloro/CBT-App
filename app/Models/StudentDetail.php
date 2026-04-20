@@ -26,7 +26,7 @@ class StudentDetail extends Model
         'face_photo',
         'face_descriptor',
         'referrer_code_used',
-        'referral_user_id'
+        'referral_user_id',
     ];
 
     protected $casts = [

@@ -75,7 +75,7 @@ class StudentController extends Controller
             'phone' => $request->phone,
             'role' => 'student',
             'exam_type' => 'GENERAL',
-            'is_active' => false
+            'is_active' => true
         ]);
 
         // Send Email
@@ -89,13 +89,18 @@ class StudentController extends Controller
 
         $hasPaid = $school->payment_plan === 'paid' ? true : false;
 
+
+        $school_referrer = \App\Models\School::where('id', $schoolId)->first();
+
         StudentDetail::create([
             'user_id' => $user->id,
             'registration_number' => 'STU'.strtoupper(Str::random(8)),
             'school_id' => $school->id,
             'class_id' => $request->class_id,
             'teacher_id' => $teacher ? $teacher->user_id : null,
-            'has_paid' => $hasPaid
+            'has_paid' => false,
+            'referrer_code_used' => $school_referrer->referrer_code_used,
+            'referral_user_id' => $school_referrer->referral_user_id
         ]);
 
         return back()->with('success','Student created successfully');

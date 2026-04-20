@@ -110,14 +110,14 @@ class RegisteredUserController extends Controller
                 'registration_number' => 'SCH' . strtoupper(Str::random(8)),
                 'email' => $request->email,
                 'phone' => $request->phone,
-                'referral_code_used' => $usedCode,
-                'referrer_user_id' => $referrerId,
+                'referrer_code_used' => $usedCode,
+                'referral_user_id' => $referrerId,
             ]);
 
             SchoolDetail::create([
                 'user_id' => $user->id,
                 'school_id' => $school->id,
-                'has_paid' => true
+                'has_paid' => false
             ]);
         }
 
@@ -143,8 +143,8 @@ class RegisteredUserController extends Controller
                 'school_id' => $request->school_id,
                 'class_id' => $request->class_level,
                 'has_paid' => false,
-                'referral_code_used' => $usedCode,
-                'referrer_user_id' => $referrerId
+                'referrer_code_used' => $usedCode,
+                'referral_user_id' => $referrerId
             ]);
         }
 

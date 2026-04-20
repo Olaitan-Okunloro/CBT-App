@@ -444,38 +444,36 @@ class PaymentController extends Controller
 
         $type = null;
 
-        // External direct student referral
-        if (!empty($student->referrer_user_id)) {
+        // Direct student referral
+        if (!empty($student->referral_user_id)) {
 
-            $referrerId = $student->referrer_user_id;
+            $referrerId = $student->referral_user_id;
             $type = 'student';
 
         } elseif ($student->school_id) {
 
             $school = \App\Models\School::find($student->school_id);
 
-            if ($school && !empty($school->referrer_user_id)) {
-                $referrerId = $school->referrer_user_id;
+            if ($school && !empty($school->referral_user_id)) {
+
+                $referrerId = $school->referral_user_id;
                 $type = 'school';
             }
         }
 
         if ($referrerId) {
 
-            $referrer = \App\Models\User::find($referrerId);
+            \Illuminate\Support\Facades\DB::table('wallets')
+                ->where('user_id', $referrerId)
+                ->increment('balance', $commission);
 
-            if ($referrer) {
-
-                $referrer->increment('wallet_balance', $commission);
-
-                Commission::create([
-                    'referrer_id' => $referrerId,
-                    'student_id' => $student->id,
-                    'payment_id' => $payment->id,
-                    'amount' => $commission,
-                    'type' => $type
-                ]);
-            }
+            \App\Models\Commission::create([
+                'referrer_id' => $referrerId,
+                'student_id' => $student->id,
+                'payment_id' => $payment->id,
+                'amount' => $commission,
+                'type' => $type
+            ]);
         }
     }
 }
