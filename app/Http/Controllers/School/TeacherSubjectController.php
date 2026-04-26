@@ -72,10 +72,13 @@ class TeacherSubjectController extends Controller
         // Get subjects
         $subjects = Subject::all();
         
-        // Get classes assigned to this school (using SchoolClass model)
-        $classes = SchoolClass::where('school_id', $school->id)
-            ->with('classLevel')
-            ->get();
+        $classes = SchoolClass::with('classLevel')
+            ->where('school_id', $school->id)
+            ->get()
+            ->map(fn($row) => (object)[
+                'id' => $row->class_level_id,
+                'name' => $row->classLevel->name
+            ]);;
         
         return view('school.teacher-subjects.create', compact('teachers', 'subjects', 'classes'));
     }
@@ -85,11 +88,12 @@ class TeacherSubjectController extends Controller
      */
     public function store(Request $request)
     {
+        // dd($request->all());
         $request->validate([
             'assignments' => 'required|array|min:1',
             'assignments.*.teacher_id' => 'required|exists:users,id',
             'assignments.*.subject_id' => 'required|exists:subjects,id',
-            'assignments.*.class_id' => 'required|exists:school_classes,id',  // Changed to match your form
+            'assignments.*.class_level_id' => 'required|exists:school_classes,id',  // Changed to match your form
         ]);
 
         $school = auth()->user()->schoolDetail->school ?? null;
@@ -110,13 +114,13 @@ class TeacherSubjectController extends Controller
                 $exists = TeacherSubject::where('school_id', $school->id)
                     ->where('teacher_id', $assignment['teacher_id'])
                     ->where('subject_id', $assignment['subject_id'])
-                    ->where('class_id', $assignment['class_id']) // Map class_level_id to class_id
+                    ->where('class_id', $assignment['class_level_id']) // Map class_level_id to class_id
                     ->exists();
                 
                 if ($exists) {
                     $teacher = User::find($assignment['teacher_id']);
                     $subject = Subject::find($assignment['subject_id']);
-                    $class = SchoolClass::find($assignment['class_id']);
+                    $class = SchoolClass::find($assignment['class_level_id']);
                     $duplicates[] = "{$teacher->name} - {$subject->name} - " . ($class->classLevel->name ?? 'N/A');
                     continue;
                 }
@@ -126,7 +130,7 @@ class TeacherSubjectController extends Controller
                     'school_id' => $school->id,
                     'teacher_id' => $assignment['teacher_id'],
                     'subject_id' => $assignment['subject_id'],
-                    'class_id' => $assignment['class_id'],  // Map here
+                    'class_id' => $assignment['class_level_id'],  // Map here
                     'is_active' => true,
                 ]);
                 
@@ -152,10 +156,10 @@ class TeacherSubjectController extends Controller
         
         if (!empty($errors)) {
             $message .= "Failed: " . implode('; ', $errors);
-            return redirect()->route('teacher-subjects.index')->with('warning', $message);
+            return redirect()->route('school.teacher-subjects.index')->with('warning', $message);
         }
-
-        return redirect()->route('teacher-subjects.index')->with('success', $message);
+        
+        return redirect()->route('school.teacher-subjects.index')->with('success', $message);
     }
 
     /**

@@ -11,13 +11,13 @@
                     <h4 class="mb-0">
                         <i class="fas fa-chalkboard-teacher me-2"></i>Teacher Subject Assignments
                     </h4>
-                    <a href="{{ route('teacher-subjects.create') }}" class="btn btn-light">
+                    <a href="{{ route('school.teacher-subjects.create') }}" class="btn btn-light">
                         <i class="fas fa-plus-circle me-2"></i>New Assignment
                     </a>
                 </div>
                 <div class="card-body">
                     <!-- Search Form -->
-                    <form method="GET" action="{{ route('teacher-subjects.index') }}" class="mb-4">
+                    <form method="GET" action="{{ route('school.teacher-subjects.index') }}" class="mb-4">
                         <div class="input-group">
                             <input type="text" name="search" class="form-control" 
                                    placeholder="Search by teacher, subject or class..." 
@@ -80,7 +80,7 @@
                                             <td>
                                                 <div class="btn-group" role="group">
                                                     @foreach($group as $item)
-                                                        <form method="POST" action="{{ route('teacher-subjects.destroy', $item->id) }}" class="d-inline">
+                                                        <form method="POST" action="{{ route('school.teacher-subjects.destroy', $item->id) }}" class="d-inline">
                                                             @csrf
                                                             @method('DELETE')
                                                             <button type="submit" class="btn btn-sm btn-danger"

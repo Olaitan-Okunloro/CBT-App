@@ -14,7 +14,7 @@
                 </div>
 
                 <div class="card-body">
-                    <form method="POST" action="{{ route('teacher-subjects.store') }}" id="assignmentsForm">
+                    <form method="POST" action="{{ route('school.teacher-subjects.store') }}" id="assignmentsForm">
                         @csrf
 
                         <div id="assignments-wrapper">
@@ -66,12 +66,10 @@
                                                 <span class="input-group-text bg-warning text-dark">
                                                     <i class="fas fa-layer-group"></i>
                                                 </span>
-                                                <select name="assignments[0][class_id]" class="form-select" required>
+                                                <select name="assignments[0][class_level_id]" class="form-select" required>
                                                     <option value="">Select Class</option>
                                                     @foreach($classes as $class)
-                                                    <option value="{{ $class->id }}">
-                                                        {{ $class->classLevel->name ?? 'N/A' }}
-                                                    </option>
+                                                        <option value="{{ $class->id }}">{{ $class->name }}</option>
                                                     @endforeach
                                                 </select>
                                             </div>
@@ -191,12 +189,10 @@ function addAssignment() {
                         <span class="input-group-text bg-warning text-dark">
                             <i class="fas fa-layer-group"></i>
                         </span>
-                        <select name="assignments[${index}][class_id]" class="form-select" required>
+                        <select name="assignments[${index}][class_level_id]" class="form-select" required>
                             <option value="">Select Class</option>
                             @foreach($classes as $class)
-                                <option value="{{ $class->id }}">
-                                    {{ $class->classLevel->name ?? 'N/A' }}
-                                </option>
+                                <option value="{{ $class->id }}">{{ $class->name }}</option>
                             @endforeach
                         </select>
                     </div>

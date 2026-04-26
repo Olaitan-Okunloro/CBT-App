@@ -12,7 +12,7 @@ class Withdrawal extends Model
         'bank_name',
         'account_name',
         'account_number',
-        'stutus',
+        'status'
     ];
 
     public function user()

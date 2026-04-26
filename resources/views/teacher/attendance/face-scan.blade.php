@@ -6,140 +6,245 @@
 <div class="container">
 
     <div class="row justify-content-center">
+
         <div class="col-md-8">
 
             <div class="card shadow-sm">
+
                 <div class="card-header bg-success text-white">
                     Facial Attendance Scanner
                 </div>
 
                 <div class="card-body text-center">
 
-                    <video id="video" width="300" height="280" autoplay muted></video>
+                    <video id="video"
+                           width="300"
+                           height="280"
+                           autoplay
+                           muted
+                           playsinline
+                           style="border-radius:10px; background:#000;">
+                    </video>
 
                     <div class="mt-3">
-                        <h5 id="resultText">Waiting for face...</h5>
+
+                        <h5 id="resultText">
+                            Loading camera...
+                        </h5>
+
                     </div>
 
                 </div>
+
             </div>
 
         </div>
+
     </div>
 
 </div>
+@endsection
 
-<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+@push('scripts')
+
+<!-- <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script> -->
+<script src="{{ asset('js/face-api.min.js') }}"></script>
 
 <script>
-window.onload = async function () {
+document.addEventListener('DOMContentLoaded', async function () {
 
-    let video = document.getElementById('video');
-    let resultText = document.getElementById('resultText');
+    const video = document.getElementById('video');
+
+    const resultText =
+        document.getElementById('resultText');
 
     const students = @json($students);
 
-    navigator.mediaDevices.getUserMedia({ video:true })
-    .then(stream => {
+    let modelsReady = false;
+
+    let processing = false;
+
+    let locked = false;
+
+    if (!video) {
+        alert('Video element not found');
+        return;
+    }
+
+    try {
+
+        const stream =
+            await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: false
+            });
+
         video.srcObject = stream;
-    });
 
-    await Promise.all([
-        faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
-        faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
-        faceapi.nets.faceRecognitionNet.loadFromUri('/models')
-    ]);
+        await video.play();
 
-    resultText.innerHTML = "Scanning face...";
+        await Promise.all([
+
+            faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+
+            faceapi.nets.faceLandmark68Net.loadFromUri('/models'),
+
+            faceapi.nets.faceRecognitionNet.loadFromUri('/models')
+
+        ]);
+
+        modelsReady = true;
+
+        resultText.innerHTML = 'Scanning face...';
+
+    } catch (error) {
+
+        console.error(error);
+
+        resultText.innerHTML =
+            'Camera failed to start';
+
+        return;
+    }
 
     const labeled = students.map(student => ({
+
         id: student.id,
+
         name: student.user?.name ?? 'Unknown',
-        descriptor: new Float32Array(JSON.parse(student.face_descriptor))
+
+        descriptor: new Float32Array(
+            JSON.parse(student.face_descriptor)
+        )
+
     }));
 
-    function distance(a,b){
+    function distance(a, b)
+    {
         return Math.sqrt(
-            a.reduce((sum,val,i)=>sum + Math.pow(val-b[i],2),0)
+            a.reduce((sum, val, i) =>
+                sum + Math.pow(val - b[i], 2), 0)
         );
     }
 
-    function findMatch(desc){
-
+    function findMatch(desc)
+    {
         let best = null;
+
         let min = 999;
 
         labeled.forEach(student => {
 
-            let d = distance(desc, student.descriptor);
+            let d = distance(
+                Array.from(desc),
+                Array.from(student.descriptor)
+            );
 
-            if(d < min){
+            if (d < min) {
                 min = d;
                 best = student;
             }
+
         });
 
         return min < 0.75 ? best : null;
     }
 
-    let processing = false;
-    let locked = false;
+    setInterval(async function () {
 
-    setInterval(async () => {
-
-        if(processing || locked) return;
-
-        processing = true;
-
-        const detection = await faceapi
-            .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-            .withFaceLandmarks()
-            .withFaceDescriptor();
-
-        if(!detection){
-            resultText.innerHTML = "No face detected";
-            processing = false;
+        if (!modelsReady || processing || locked) {
             return;
         }
 
-        const match = findMatch(detection.descriptor);
+        processing = true;
 
-        if(match){
+        try {
 
-            resultText.innerHTML = "Recognized: " + match.name;
+            const detection = await faceapi
+                .detectSingleFace(
+                    video,
+                    new faceapi.TinyFaceDetectorOptions()
+                )
+                .withFaceLandmarks()
+                .withFaceDescriptor();
 
-            fetch("{{ route('attendance.mark') }}", {
-                method: "POST",
-                headers: {
-                    "Content-Type":"application/json",
-                    "X-CSRF-TOKEN":"{{ csrf_token() }}"
-                },
-                body: JSON.stringify({
-                    student_id: match.id
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
+            if (!detection) {
 
-                resultText.innerHTML = data.message;
-
-                locked = true; // stop further scans
-
-                setTimeout(() => {
-                    locked = false;
-                    resultText.innerHTML = "Ready for next student";
-                }, 8000);
+                resultText.innerHTML =
+                    'No face detected';
 
                 processing = false;
-            });
 
-        } else {
-            resultText.innerHTML = "Face not recognized";
-            processing = false;
+                return;
+            }
+
+            const match =
+                findMatch(detection.descriptor);
+
+            if (!match) {
+
+                resultText.innerHTML =
+                    'Face not recognized';
+
+                processing = false;
+
+                return;
+            }
+
+            resultText.innerHTML =
+                'Recognized: ' + match.name;
+
+            const response =
+                await fetch(
+                    "{{ route('attendance.mark') }}",
+                    {
+                        method: 'POST',
+
+                        headers: {
+                            'Content-Type':
+                                'application/json',
+
+                            'X-CSRF-TOKEN':
+                                "{{ csrf_token() }}"
+                        },
+
+                        body: JSON.stringify({
+                            student_id: match.id
+                        })
+                    }
+                );
+
+            const data =
+                await response.json();
+
+            resultText.innerHTML =
+                data.message;
+
+            locked = true;
+
+            setTimeout(function () {
+
+                locked = false;
+
+                resultText.innerHTML =
+                    'Ready for next student';
+
+            }, 8000);
+
+        } catch (error) {
+
+            console.error(error);
+
+            resultText.innerHTML =
+                'Scan failed';
+
         }
+
+        processing = false;
 
     }, 2500);
 
-};
+});
 </script>
-@endsection
+
+@endpush

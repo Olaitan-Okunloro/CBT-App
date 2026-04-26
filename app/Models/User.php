@@ -24,7 +24,8 @@ class User extends Authenticatable
         'profile_photo',
         'is_active',
         'is_referrer',
-        'referral_code'
+        'referral_code',
+        'status'
     ];
 
     protected $hidden = [

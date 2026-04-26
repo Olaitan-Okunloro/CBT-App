@@ -51,4 +51,12 @@ class StudentDetail extends Model
     {
         return $this->belongsTo(ClassLevel::class, 'class_id');
     }
+
+    public function classLevel()
+    {
+        return $this->belongsTo(
+            \App\Models\ClassLevel::class,
+            'class_id'
+        );
+    }
 }

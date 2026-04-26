@@ -15,7 +15,7 @@
 
                 <div class="card-body text-center">
                     <!-- ✅ ONLY ONE READER -->
-                    <div id="reader" style="width: 100%;"></div>
+                    <div id="reader" style="width: 100%; height: 60%"></div>
 
                     <!-- ✅ TOAST -->
                     <div class="position-fixed top-0 end-0 p-3" style="z-index: 9999">

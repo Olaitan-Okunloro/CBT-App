@@ -476,4 +476,206 @@ class PaymentController extends Controller
             ]);
         }
     }
+
+    public function schoolFees()
+    {
+        $student = DB::table('student_details')
+            ->where('user_id', auth()->id())
+            ->first();
+
+        $fee = DB::table('school_fees')
+            ->where('class_id', $student->class_id)
+            ->latest()
+            ->first();
+
+        $totalFee =
+            ($fee->tuition ?? 0) +
+            ($fee->uniforms ?? 0) +
+            ($fee->sports_wear ?? 0) +
+            ($fee->books ?? 0) +
+            ($fee->exam_fee ?? 0) +
+            ($fee->pta_levy ?? 0) +
+            ($fee->other_fee ?? 0);
+
+        $paid = DB::table('school_fee_payments')
+            ->where('student_id', $student->user_id)
+            ->where('status', 'confirmed')
+            ->sum('amount');
+
+        $balance = $totalFee - $paid;
+
+        return view('student.school-fees', compact(
+            'student',
+            'totalFee',
+            'paid',
+            'balance'
+        ));
+    }
+
+    public function submitSchoolFees(Request $request)
+    {
+        $student = DB::table('student_details')
+            ->where('user_id', auth()->id())
+            ->first();
+
+        $proof = null;
+
+        if ($request->hasFile('proof')) {
+
+            $file = $request->file('proof');
+
+            $proof = time() . '.' . $file->getClientOriginalExtension();
+
+            $file->move(public_path('storage/fees'), $proof);
+        }
+
+        DB::table('school_fee_payments')->insert([
+            'student_id' => $student->user_id,
+            'school_id' => $student->school_id,
+            'class_id' => $student->class_id,
+            'amount' => $request->amount,
+            'reference_no' => $request->reference_no,
+            'payment_date' => $request->payment_date,
+            'proof' => $proof,
+            'status' => 'pending',
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        return back()->with('success', 'Payment submitted successfully');
+    }
+
+    public function feesReceipt($id)
+    {
+        $row = DB::table('school_fee_payments')
+            ->join(
+                'student_details',
+                'school_fee_payments.student_id',
+                '=',
+                'student_details.user_id'
+            )
+            ->join(
+                'users',
+                'student_details.user_id',
+                '=',
+                'users.id'
+            )
+            ->join(
+                'schools',
+                'school_fee_payments.school_id',
+                '=',
+                'schools.id'
+            )
+            ->select(
+                'school_fee_payments.*',
+                'users.name',
+                'student_details.registration_number',
+                'schools.name as school_name'
+            )
+            ->where('school_fee_payments.id', $id)
+            ->first();
+
+        if (!$row) {
+            return back()->with('error', 'Receipt not found');
+        }
+
+        return view('student.fees-receipt', compact('row'));
+    }
+
+    public function feesHistory()
+    {
+        $student = DB::table('student_details')
+            ->where('user_id', auth()->id())
+            ->first();
+
+        $rows = DB::table('school_fee_payments')
+            ->where('student_id', $student->user_id)
+            ->latest()
+            ->paginate(10);
+
+        return view('student.fees-history', compact('rows'));
+    }
+
+    public function financeDashboard()
+    {
+        $school = DB::table('school_details')
+            ->where('user_id', auth()->id())
+            ->first();
+
+        $confirmed = DB::table('school_fee_payments')
+            ->where('school_id', $school->school_id)
+            ->where('status', 'confirmed')
+            ->sum('amount');
+
+        $studentsPaid = DB::table('school_fee_payments')
+            ->where('school_id', $school->school_id)
+            ->where('status', 'confirmed')
+            ->distinct('student_id')
+            ->count('student_id');
+
+        $totalStudents = DB::table('student_details')
+            ->where('school_id', $school->school_id)
+            ->count();
+
+        $totalDebt = 0;
+
+        $students = DB::table('student_details')
+            ->where('school_id', $school->school_id)
+            ->get();
+
+        foreach ($students as $student) {
+
+            $fee = DB::table('school_fees')
+                ->where('school_id', $school->school_id)
+                ->where('class_id', $student->class_id)
+                ->latest()
+                ->first();
+
+                if ($fee) {
+
+                    $expected =
+                        ($fee->tuition ?? 0) +
+                        ($fee->uniforms ?? 0) +
+                        ($fee->sports_wear ?? 0) +
+                        ($fee->books ?? 0) +
+                        ($fee->exam_fee ?? 0) +
+                        ($fee->pta_levy ?? 0) +
+                        ($fee->other_fee ?? 0);
+
+                    $paid = DB::table('school_fee_payments')
+                        ->where('student_id', $student->school_id)
+                        ->where('status', 'confirmed')
+                        ->sum('amount');
+
+                    $balance = $expected - $paid;
+
+                    if ($balance > 0) {
+                        $totalDebt += $balance;
+                    }
+                }
+            }
+
+        $monthly = DB::table('school_fee_payments')
+            ->selectRaw("
+                DATE_FORMAT(created_at, '%Y-%m') as month_key,
+                DATE_FORMAT(created_at, '%b') as month,
+                SUM(amount) as total
+            ")
+            ->where('school_id', $school->school_id)
+            ->where('status', 'confirmed')
+            ->groupByRaw("
+                DATE_FORMAT(created_at, '%Y-%m'),
+                DATE_FORMAT(created_at, '%b')
+            ")
+            ->orderBy('month_key')
+            ->get();
+
+        return view('school.finance-dashboard', compact(
+            'confirmed',
+            'studentsPaid',
+            'totalStudents',
+            'totalDebt',
+            'monthly'
+        ));
+    }
 }

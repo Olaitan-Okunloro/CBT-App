@@ -6,14 +6,19 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\ClassLevel;
+use App\Models\SchoolClass;
 use App\Models\TeacherDetail;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Mail;
 use App\Mail\UserCreatedMail;
 use App\Models\StudentDetail;
 use App\Models\ExamAttempt;
 use App\Models\Question;
+
+
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Mail;
+
 
 class TeacherController extends Controller
 {
@@ -59,7 +64,21 @@ class TeacherController extends Controller
 
     public function create()
     {
-        $classes = ClassLevel::all();
+        $user = auth()->user();
+        $school = $user->schoolDetail->school ?? null;
+
+        if (!$school) {
+            return redirect()->back()->with('error', 'School not found.');
+        }
+
+        $classes = SchoolClass::with('classLevel')
+            ->where('school_id', $school->id)
+            ->get()
+            ->map(fn($row) => (object)[
+                'id' => $row->class_level_id,
+                'name' => $row->classLevel->name
+            ]);
+
         return view('school.teacher.create', compact('classes'));
     }
 

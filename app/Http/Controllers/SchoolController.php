@@ -18,39 +18,6 @@ class SchoolController extends Controller
     /**
      * Display school dashboard
      */
-    // public function dashboard()
-    // {
-    //     $user = auth()->user();
-    //     $schoolDetail = $user->schoolDetail;
-    //     $school = $schoolDetail->school ?? null;
-        
-    //     if (!$school) {
-    //         return redirect()->route('profile.edit')
-    //             ->with('error', 'Please complete your school profile first.');
-    //     }
-        
-    //     $stats = [
-    //         'total_teachers' => TeacherDetail::where('school_id', $school->id)->count(),
-    //         'total_students' => StudentDetail::where('school_id', $school->id)->count(),
-    //         'total_classes' => ClassLevel::where('id', $school->id)->count(),
-    //         'recent_activities' => [] // You can add activity log here
-    //     ];
-        
-    //     $recentTeachers = TeacherDetail::with('user')
-    //         ->where('school_id', $school->id)
-    //         ->latest()
-    //         ->take(5)
-    //         ->get();
-            
-    //     $recentStudents = StudentDetail::with('user')
-    //         ->where('school_id', $school->id)
-    //         ->latest()
-    //         ->take(5)
-    //         ->get();
-        
-    //     return view('dashboard.school', compact('stats', 'recentTeachers', 'recentStudents', 'school'));
-    // }
-
 
     public function dashboard()
     {

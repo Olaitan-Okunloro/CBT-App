@@ -48,6 +48,30 @@ Route::get('/notifications/read', function () {
 |--------------------------------------------------------------------------
 */
 
+
+// Payment routes (protected)
+Route::middleware('auth')->group(function () {
+    Route::get('/payment', [PaymentController::class, 'showPaymentPage'])
+        ->name('payment.show');
+    
+    Route::post('/payment/initialize', [PaymentController::class, 'initialize'])
+        ->name('payment.initialize');
+    
+    Route::get('/payment/callback', [PaymentController::class, 'callback'])
+        ->name('payment.callback');
+    
+    Route::get('/payment/success', [PaymentController::class, 'success'])
+        ->name('payment.success');
+    
+    Route::get('/payment/cancel', [PaymentController::class, 'cancel'])
+        ->name('payment.cancel');
+        
+    Route::get('/payment/receipt/{reference}', 
+        [PaymentController::class,'downloadReceipt']
+    )->name('payment.receipt');
+
+});
+
 Route::middleware(['auth','verified', \App\Http\Middleware\CheckPayment::class])->group(function(){
 
     // Main dashboard
@@ -61,41 +85,120 @@ Route::middleware(['auth','verified', \App\Http\Middleware\CheckPayment::class])
             ->name('dashboard');
     });
 
-    
-});
-
-// admin route starts here
-
-// admin dashboard
+    // admin dashboard
     Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/dashboard', [DashboardController::class, 'admin'])
             ->name('dashboard');
  
     });
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| Admin Routes 
+|--------------------------------------------------------------------------
+*/
+
+// admin route starts here
 Route::prefix('admin')->middleware('auth')->group(function () {
 
     Route::get('/withdrawals', [App\Http\Controllers\DashboardController::class, 'withdrawals'])
         ->name('admin.withdrawals');
 
-    Route::post('/withdrawals/{id}/approve', [App\Http\Controllers\DashboardController::class, 'approveWithdrawal'])
+    Route::post('/withdrawals/{id}/approve', [App\Http\Controllers\AdminController::class, 'approveWithdrawal'])
         ->name('admin.withdraw.approve');
 
-    Route::post('/withdrawals/{id}/reject', [App\Http\Controllers\DashboardController::class, 'rejectWithdrawal'])
+    Route::post('/withdrawals/{id}/reject', [App\Http\Controllers\AdminController::class, 'rejectWithdrawal'])
         ->name('admin.withdraw.reject');
 
-    Route::post('/withdrawals/{id}/paid', [App\Http\Controllers\DashboardController::class, 'paidWithdrawal'])
+    Route::post('/withdrawals/{id}/paid', [App\Http\Controllers\AdminController::class, 'paidWithdrawal'])
         ->name('admin.withdraw.paid');
 });
 
 Route::get('/admin/analytics', [DashboardController::class, 'analytics'])
-            ->name('dashboard.leaderboard');
+            ->name('dashboard.leaderboard'); 
 
-// admin route ends here
+Route::get('/admin/withdraw-history', [DashboardController::class, 'withdrawHistory'])
+    ->name('admin.withdraw.history');
+    
+Route::get('/admin/analytics', [DashboardController::class, 'analytics'])
+    ->name('admin.analytics');   
+    
+Route::get('/admin/users', [DashboardController::class, 'users'])
+    ->name('admin.users');
+
+Route::post('/admin/users/{id}/toggle', [DashboardController::class, 'toggleUser'])
+    ->name('admin.users.toggle');
+    
+Route::post('/admin/users/{id}/delete', [dashboardController::class, 'deleteUser'])
+    ->name('admin.users.delete'); 
+    
+Route::get('/admin/profile', [DashboardController::class, 'profile'])
+    ->name('admin.profile');
+
+Route::post('/admin/profile', [DashboardController::class, 'updateProfile'])
+    ->name('admin.profile.update');
+    
+Route::get('/admin/password', [DashboardController::class, 'password'])
+    ->name('admin.password');
+
+Route::post('/admin/password', [DashboardController::class, 'updatePassword'])
+    ->name('admin.password.update');
+    
+Route::get('/admin/activity', [DashboardController::class, 'activity'])
+    ->name('admin.activity'); 
+    
+Route::get('/admin/settings', [DashboardController::class, 'settings'])
+    ->name('admin.settings');
+
+Route::post('/admin/settings', [DashboardController::class, 'updateSettings'])
+    ->name('admin.settings.update');
+
+Route::get('/admin/announcements', [DashboardController::class, 'announcements'])
+    ->name('admin.announcements');
+
+Route::post('/admin/announcements', [DashboardController::class, 'storeAnnouncement'])
+    ->name('admin.announcements.store'); 
+    
+Route::get('/support', [App\Http\Controllers\SupportController::class, 'index'])
+    ->name('support.index');
+
+Route::post('/support', [App\Http\Controllers\SupportController::class, 'store'])
+    ->name('support.store');
+
+Route::get('/admin/support', [DashboardController::class, 'support'])
+    ->name('admin.support');
+    
+Route::post('/admin/support/{id}/resolve', [DashboardController::class, 'resolveSupport'])
+    ->name('admin.support.resolve');
+
+Route::post('/admin/support/{id}/delete', [DashboardController::class, 'deleteSupport'])
+    ->name('admin.support.delete');   
+    
+// admin ai questions routes
+Route::get('/admin/ai-generator', function() {
+    if (auth()->user()->role !== 'admin') {
+        abort(403, 'Unauthorized');
+    }
+    return app()->make(AdminAIQuestionController::class)->index();
+})->name('admin.ai.generator');
+
+Route::post('/ai-save', [AdminAIQuestionController::class, 'save'])->name('admin.ai.save');
+Route::post('/ai-generate', [AdminAIQuestionController::class, 'generate'])->name('admin.ai.generate');    
+            
+// admin route ends here   
 
 
 
-// school route
+/*
+|--------------------------------------------------------------------------
+| School Routes 
+|--------------------------------------------------------------------------
+*/
+
+// school route starts here
 Route::get('/school/students/import', [StudentController::class,'importForm'])
     ->name('school.students.import');
 
@@ -125,12 +228,168 @@ Route::get('/school/bulk-payment/receipt/{id}', [BulkPaymentController::class, '
     ->name('bulk.payment.receipt');
     
 Route::get('/school/bulk-payment/analytics', [BulkPaymentController::class, 'analytics'])
-    ->name('bulk.payment.analytics');    
-// school route ends here    
+    ->name('bulk.payment.analytics'); 
+    
+// Route::get('/school/profile', [SchoolController::class, 'profile'])
+//     ->name('school.profile');
+
+// Route::post('/school/profile', [SchoolController::class, 'updateProfile'])
+//     ->name('school.profile.update');
+    
+Route::get('/school/results/manage', [SchoolController::class, 'manageResults'])
+    ->name('school.results.manage');
+
+Route::post('/school/results/release', [SchoolController::class, 'releaseResults'])
+    ->name('school.results.release');
+    
+Route::get('/school/promotion', [SchoolController::class, 'promotionPage'])
+    ->name('school.promotion');
+
+Route::post('/school/promotion/run', [SchoolController::class, 'runPromotion'])
+    ->name('school.promotion.run');
+
+Route::get('/school/fees', [SchoolController::class, 'fees'])
+    ->name('school.fees');
+
+Route::post('/school/fees', [SchoolController::class, 'saveFees'])
+    ->name('school.fees.save');
+    
+Route::get('/school/fees/{id}/edit', [SchoolController::class, 'editFee'])
+    ->name('school.fees.edit');
+
+Route::post('/school/fees/{id}/update', [SchoolController::class, 'updateFee'])
+    ->name('school.fees.update');
+
+Route::post('/school/fees/{id}/delete', [SchoolController::class, 'deleteFee'])
+    ->name('school.fees.delete');
+    
+Route::get('/school/books', [SchoolController::class, 'books'])
+    ->name('school.books');
+
+Route::post('/school/books', [SchoolController::class, 'saveBooks'])
+    ->name('school.books.save');
+
+Route::post('/school/books/{id}/delete', [SchoolController::class, 'deleteBooks'])
+    ->name('school.books.delete');
+    
+Route::get('/school/books/{id}/edit', [SchoolController::class, 'editBooks'])
+    ->name('school.books.edit');
+
+Route::post('/school/books/{id}/update', [SchoolController::class, 'updateBooks'])
+    ->name('school.books.update');
+    
+Route::get('/school/results/remarks', [SchoolController::class, 'remarksPage'])
+    ->name('school.results.remarks');
+
+Route::post('/school/results/remarks/save', [SchoolController::class, 'saveRemarks'])
+    ->name('school.results.remarks.save');
+
+Route::get('/school/fees/payments', [SchoolController::class, 'feePayments'])
+    ->name('school.fees.payments');
+
+Route::post('/school/fees/payments/{id}/confirm', [SchoolController::class, 'confirmFeePayment'])
+    ->name('school.fees.payments.confirm');   
+    
+Route::get('school/classes', [App\Http\Controllers\School\SchoolClassController::class, 'index'])->name('classes.index');
+Route::get('school/classes/create', [App\Http\Controllers\School\SchoolClassController::class, 'create'])->name('classes.create');
+Route::post('school/classes', [App\Http\Controllers\School\SchoolClassController::class, 'store'])->name('classes.store');
+Route::delete('school/classes/{id}', [App\Http\Controllers\School\SchoolClassController::class, 'destroy'])->name('classes.destroy');
+Route::get('school/classes/available', [App\Http\Controllers\School\SchoolClassController::class, 'getAvailableClasses'])->name('classes.available'); 
+
+Route::middleware(['auth'])->prefix('school')->name('school.')->group(function () {
+    Route::get('/dashboard', [SchoolController::class, 'dashboard'])->name('dashboard');
+    // other school routes...
+});
+
+Route::get('/school/students/download-page', [StudentController::class,'downloadPage'])
+    ->name('school.students.download.page');
+
+// face recognition handled by school  
+Route::get('/school/student/face/register/{id}', [AttendanceController::class, 'schoolFaceRegisterForm'])->name('school.face.register');
+Route::post('/school/student/face/register/{id}', [AttendanceController::class, 'schoolSaveFace'])->name('school.face.save');
+Route::get('school/attendance/face-scan', [AttendanceController::class, 'schoolFaceScan'])
+    ->name('school.attendance.face.scan');
+Route::get('/school/students/face-registration', [AttendanceController::class, 'schoolStudentFaceList'])
+    ->name('school.students.face.list');  
+    
+// Teacher Subject Management Routes
+Route::get('/school/teacher-subjects', [TeacherSubjectController::class, 'index'])->name('school.teacher-subjects.index');
+Route::get('school/teacher-subjects/create', [TeacherSubjectController::class, 'create'])->name('school.teacher-subjects.create');
+Route::post('/school/teacher-subjects', [TeacherSubjectController::class, 'store'])->name('school.teacher-subjects.store');
+Route::put('/school/teacher-subjects/{id}/toggle', [TeacherSubjectController::class, 'toggle'])->name('school.teacher-subjects.toggle');
+Route::delete('/school/teacher-subjects/{id}', [TeacherSubjectController::class, 'destroy'])->name('school.teacher-subjects.destroy');
+
+Route::get('/school/profile', [SchoolController::class, 'profile'])
+    ->name('school.profile');    
+
+Route::post('/school/profile', [SchoolController::class, 'updateProfile'])
+    ->name('school.profile.update');
+
+Route::get('/school/password', [SchoolController::class, 'password'])
+    ->name('school.password');
+
+Route::post('/school/password', [SchoolController::class, 'updatePassword'])
+    ->name('school.password.update');
+
+Route::get('/school/activity', [SchoolController::class, 'activity'])
+    ->name('school.activity');
+
+Route::get('/school/finance-dashboard', [PaymentController::class, 'financeDashboard'])
+    ->name('school.finance.dashboard');  
+    
+Route::get('/school/students', [SchoolController::class, 'students'])
+    ->name('school.students');
+
+Route::get('/school/student/{id}/edit', [SchoolController::class, 'editStudent'])
+    ->name('school.student.edit');
+
+Route::post('/school/student/{id}/update', [SchoolController::class, 'updateStudent'])
+    ->name('school.student.update');
+
+Route::post('/school/student/{id}/delete', [SchoolController::class, 'deleteStudent'])
+    ->name('school.student.delete');
+
+Route::post('/school/student/{id}/toggle', [SchoolController::class, 'toggleStudent'])
+    ->name('school.student.toggle');
+
+Route::middleware(['auth'])->group(function () {
+
+    Route::get(
+        '/school/teachers',
+        [SchoolController::class, 'teachers']
+    )->name('school.teachers');
+
+    Route::get(
+        '/school/teacher/{id}/edit',
+        [SchoolController::class, 'editTeacher']
+    )->name('school.teacher.edit');
+
+    Route::post(
+        '/school/teacher/{id}/update',
+        [SchoolController::class, 'updateTeacher']
+    )->name('school.teacher.update');
+
+    Route::post(
+        '/school/teacher/{id}/toggle',
+        [SchoolController::class, 'toggleTeacher']
+    )->name('school.teacher.toggle');
+
+    Route::post(
+        '/school/teacher/{id}/delete',
+        [SchoolController::class, 'deleteTeacher']
+    )->name('school.teacher.delete');
+
+});    
+    
+// school route ends here 
 
 
 
-
+/*
+|--------------------------------------------------------------------------
+| Teacher Routes 
+|--------------------------------------------------------------------------
+*/
 
 // teacher's routes start here
 Route::middleware(['auth'])->prefix('teacher')->name('teacher.')->group(function () {
@@ -173,47 +432,71 @@ Route::get('/get-topics/{classId}/{subjectId}', function ($classId, $subjectId) 
 Route::get('/teacher/results/create', [ResultController::class, 'create'])->name('results.create');
 Route::post('/teacher/results/store', [ResultController::class, 'store'])->name('results.store');
 
-// Route::get('/teacher/question-bank', [QuestionBankController::class, 'index'])
-//     ->name('teacher.question.bank');
-
-// Route::post('/teacher/question-bank/import', [QuestionBankController::class, 'import'])
-//     ->name('teacher.question.bank.import');
-
-// teacher generate question
-// Route::post('/teacher/question-bank/generate', [QuestionBankController::class, 'generateFromBank'])
-//     ->name('teacher.bank.generate');    
-
-// teacher's route ends here 
-
-// students routes start here
-Route::get('/student/analytics', [\App\Http\Controllers\Student\ExamController::class, 'analytics'])
-    ->name('student.analytics');
-
-// School dashboard
-Route::middleware(['auth'])->prefix('school')->name('school.')->group(function () {
-    Route::get('/dashboard', [SchoolController::class, 'dashboard'])->name('dashboard');
-    // other school routes...
-});
-
-Route::get('/school/students/download-page', [StudentController::class,'downloadPage'])
-    ->name('school.students.download.page');
-
-
-// qr code    
-Route::get('/student/{id}/qrcode', [QRcodeController::class, 'qr'])->name('student.qrcode');
-
 // attendance
 Route::middleware('auth')->group(function () {
 
     Route::get('/teacher/attendance/dashboard', [AttendanceController::class, 'dashboard'])
         ->name('attendance.dashboard');
-
 });
 
 // Route::get('/teacher/attendance/dashboard', [AttendanceController::class, 'dashboard'])->name('attendance.dashboard');
 Route::get('teacher/attendance/scan', [AttendanceController::class, 'scan'])->name('attendance.scan');
 Route::post('teacher/attendance/mark', [AttendanceController::class, 'mark'])->name('attendance.mark');
 Route::get('/teacher/attendance/report/pdf', [AttendanceController::class, 'pdf'])->name('attendance.pdf');
+
+Route::middleware(['auth'])->prefix('school')->group(function(){
+    Route::get('/teacher/create',[TeacherController::class,'create'])->name('school.teacher.create');
+    Route::post('/teacher/store',[TeacherController::class,'store'])->name('school.teacher.store');
+});
+
+// face recognition handled by teacher    
+Route::get('/teacher/student/face/register/{id}', [AttendanceController::class, 'faceRegisterForm'])->name('face.register');
+Route::post('/teacher/student/face/register/{id}', [AttendanceController::class, 'saveFace'])->name('face.save');
+Route::get('teacher/attendance/face-scan', [AttendanceController::class, 'faceScan'])
+    ->name('attendance.face.scan');
+Route::get('/teacher/students/face-registration', [AttendanceController::class, 'studentFaceList'])
+    ->name('students.face.list');
+
+Route::middleware(['auth'])->prefix('school')->group(function(){
+    Route::get('/student/create',[StudentController::class,'create'])
+        ->name('school.student.create');
+    Route::post('/student/store',[StudentController::class,'store'])
+        ->name('school.student.store');
+});
+
+// questions creation route
+Route::get('/teacher/questions/create', [QuestionController::class, 'create'])
+    ->name('teacher.questions.create');
+
+// questions upload route    
+Route::post('/teacher/questions/store', [QuestionController::class, 'store'])
+    ->name('teacher.questions.store');
+
+// exams creation route    
+Route::get('/teacher/exams/create', [\App\Http\Controllers\Teacher\ExamController::class, 'create'])
+    ->name('teacher.exams.create');
+
+// exams upload route    
+Route::post('/teacher/exams/store', [\App\Http\Controllers\Teacher\ExamController::class, 'store'])
+    ->name('teacher.exams.store');
+
+// teacher's route ends here 
+
+
+/*
+|--------------------------------------------------------------------------
+| Student Routes 
+|--------------------------------------------------------------------------
+*/
+
+// students routes start here
+Route::get('/student/analytics', [\App\Http\Controllers\Student\ExamController::class, 'analytics'])
+    ->name('student.analytics');
+
+// qr code    
+Route::get('/student/{id}/qrcode', [QRcodeController::class, 'qr'])->name('student.qrcode');
+
+
 
 // exam route
 Route::get('/exam/start/{examId}', [ExamController::class, 'start'])
@@ -231,44 +514,12 @@ Route::post('/exam/answer', [ExamController::class, 'answer'])
     ->name('student.exam.answer');
 
 Route::get('/exam/result/{id}', [\App\Http\Controllers\Student\ExamController::class, 'result'])
-    ->name('student.exam.result'); 
-
-// face recognition handled by teacher    
-Route::get('/teacher/student/face/register/{id}', [AttendanceController::class, 'faceRegisterForm'])->name('face.register');
-Route::post('/teacher/student/face/register/{id}', [AttendanceController::class, 'saveFace'])->name('face.save');
-Route::get('teacher/attendance/face-scan', [AttendanceController::class, 'faceScan'])
-    ->name('attendance.face.scan');
-Route::get('/teacher/students/face-registration', [AttendanceController::class, 'studentFaceList'])
-    ->name('students.face.list');
-    
-// face recognition handled by school  
-Route::get('/school/student/face/register/{id}', [AttendanceController::class, 'schoolFaceRegisterForm'])->name('school.face.register');
-Route::post('/school/student/face/register/{id}', [AttendanceController::class, 'schoolSaveFace'])->name('school.face.save');
-Route::get('school/attendance/face-scan', [AttendanceController::class, 'schoolFaceScan'])
-    ->name('school.attendance.face.scan');
-Route::get('/school/students/face-registration', [AttendanceController::class, 'schoolStudentFaceList'])
-    ->name('school.students.face.list');     
+    ->name('student.exam.result');      
 
 // auto submition route
 Route::get('/exam/submit-auto', [ExamController::class, 'autoSubmit'])
     ->name('student.exam.submit.auto');
     
-// questions creation route
-Route::get('/teacher/questions/create', [QuestionController::class, 'create'])
-    ->name('teacher.questions.create');
-
-// questions upload route    
-Route::post('/teacher/questions/store', [QuestionController::class, 'store'])
-    ->name('teacher.questions.store');
-
-// exams creation route    
-Route::get('/teacher/exams/create', [\App\Http\Controllers\Teacher\ExamController::class, 'create'])
-    ->name('teacher.exams.create');
-
-// exams upload route    
-Route::post('/teacher/exams/store', [\App\Http\Controllers\Teacher\ExamController::class, 'store'])
-    ->name('teacher.exams.store');
-
 // leaderboard
 Route::get('student/leaderboard', [App\Http\Controllers\Student\LeaderboardController::class, 'index'])
     ->name('student.leaderboard');
@@ -276,20 +527,6 @@ Route::get('student/leaderboard', [App\Http\Controllers\Student\LeaderboardContr
 // download result    
 Route::get('/exam/result/{id}/pdf', [ExamController::class, 'downloadResult'])
     ->name('student.exam.pdf');    
-
-// teacher ai questions routes
-
-
-// admin ai questions routes
-Route::get('/admin/ai-generator', function() {
-    if (auth()->user()->role !== 'admin') {
-        abort(403, 'Unauthorized');
-    }
-    return app()->make(AdminAIQuestionController::class)->index();
-})->name('admin.ai.generator');
-
-Route::post('/ai-save', [AdminAIQuestionController::class, 'save'])->name('admin.ai.save');
-Route::post('/ai-generate', [AdminAIQuestionController::class, 'generate'])->name('admin.ai.generate');
 
 // auto-populate subjects    
 Route::get('/get-subjects/{classId}', function ($classId) {
@@ -304,61 +541,10 @@ Route::get('/get-subjects/{classId}', function ($classId) {
 // get topic route
 Route::get('/get-topics/{subjectId}', function ($subjectId) {
     return \App\Models\Topic::where('subject_id', $subjectId)->get();
-});
-
-// routes one ends here    
-
-// Single dynamic dashboard route
-// Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');    
-
-// Payment routes (protected)
-Route::middleware('auth')->group(function () {
-    Route::get('/payment', [PaymentController::class, 'showPaymentPage'])
-        ->name('payment.show');
-    
-    Route::post('/payment/initialize', [PaymentController::class, 'initialize'])
-        ->name('payment.initialize');
-    
-    Route::get('/payment/callback', [PaymentController::class, 'callback'])
-        ->name('payment.callback');
-    
-    Route::get('/payment/success', [PaymentController::class, 'success'])
-        ->name('payment.success');
-    
-    Route::get('/payment/cancel', [PaymentController::class, 'cancel'])
-        ->name('payment.cancel');
-        
-    Route::get('/payment/receipt/{reference}', 
-        [PaymentController::class,'downloadReceipt']
-    )->name('payment.receipt');
-
-});
-
-// Teacher Subject Management Routes
-Route::get('/teacher-subjects', [TeacherSubjectController::class, 'index'])->name('teacher-subjects.index');
-    Route::get('/teacher-subjects/create', [TeacherSubjectController::class, 'create'])->name('teacher-subjects.create');
-    Route::post('/teacher-subjects', [TeacherSubjectController::class, 'store'])->name('teacher-subjects.store');
-    Route::put('/teacher-subjects/{id}/toggle', [TeacherSubjectController::class, 'toggle'])->name('teacher-subjects.toggle');
-    Route::delete('/teacher-subjects/{id}', [TeacherSubjectController::class, 'destroy'])->name('teacher-subjects.destroy');
-Route::middleware(['auth', 'role:school'])->prefix('school')->name('school.')->group(function () {
-    // Teacher Subjects
-    
-});
-
-
-// School Classes Routes - Use correct namespace
-Route::get('school/classes', [App\Http\Controllers\School\SchoolClassController::class, 'index'])->name('classes.index');
-Route::get('school/classes/create', [App\Http\Controllers\School\SchoolClassController::class, 'create'])->name('classes.create');
-Route::post('school/classes', [App\Http\Controllers\School\SchoolClassController::class, 'store'])->name('classes.store');
-Route::delete('school/classes/{id}', [App\Http\Controllers\School\SchoolClassController::class, 'destroy'])->name('classes.destroy');
-Route::get('school/classes/available', [App\Http\Controllers\School\SchoolClassController::class, 'getAvailableClasses'])->name('classes.available');
-// Route::middleware(['auth'])->prefix('school')->name('school.')->group(function () {
-// });
+});  
 
 // Student routes
-Route::middleware(['auth'])->prefix('student')->name('student.')->group(function () {
-    // Route::get('/exams/available', [ExamController::class, 'start'])
-    //     ->name('exams.available');        
+Route::middleware(['auth'])->prefix('student')->name('student.')->group(function () {      
     
     Route::get('/results', [StudentController::class, 'results'])
         ->name('results');
@@ -388,17 +574,24 @@ Route::post('/student/change-password', [StudentController::class, 'updatePasswo
 Route::get('/student/activity-log', [StudentController::class, 'activityLog'])
     ->name('student.activity');  
     
-// Route::post('/student/email-toggle', [PaymentController::class, 'emailToggle'])
-//     ->name('student.email.toggle');
-    
 Route::get('/student/email-activate', [PaymentController::class, 'emailActivate'])
     ->name('student.email.activate');
 
 Route::get('/student/email-disable', [PaymentController::class, 'emailDisable'])
     ->name('student.email.disable');
 
-// student route ends here    
+Route::get('/student/school-fees', [PaymentController::class, 'schoolFees'])
+    ->name('student.school.fees');
 
+Route::post('/student/school-fees', [PaymentController::class, 'submitSchoolFees'])
+    ->name('student.school.fees.submit');    
+
+Route::get('/student/fees-receipt/{id}', [PaymentController::class, 'feesReceipt'])
+    ->name('student.fees.receipt'); 
+    
+Route::get('/student/fees-history', [PaymentController::class, 'feesHistory'])
+    ->name('student.fees.history');    
+    
 // exam route
 Route::middleware(['auth','paid'])->group(function () {
 
@@ -406,45 +599,17 @@ Route::middleware(['auth','paid'])->group(function () {
     Route::get('/exam/{id}', [ExamController::class,'start']);
     Route::post('/exam/submit', [ExamController::class,'submit']);
 
-});
+});    
 
-// Profile routes (from Breeze)
-// Route::middleware('auth')->group(function () {
-//     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-//     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-//     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-// });
+// student route ends here    
 
-// teacher route
-Route::middleware(['auth'])->prefix('school')->group(function(){
-    Route::get('/teacher/create',[TeacherController::class,'create'])->name('school.teacher.create');
-    Route::post('/teacher/store',[TeacherController::class,'store'])->name('school.teacher.store');
-});
 
-// student route
-Route::middleware(['auth'])->prefix('school')->group(function(){
-    Route::get('/student/create',[StudentController::class,'create'])
-        ->name('school.student.create');
-    Route::post('/student/store',[StudentController::class,'store'])
-        ->name('school.student.store');
-});
 
-// Paystack webhook (no CSRF protection)
-// Route::post('/payment/webhook', [PaymentController::class, 'webhook'])
-//     ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
-//     ->name('payment.webhook');
-
-// Route::get('/payment/callback', [PaymentController::class, 'callback'])->name('payment.callback');
-
-Route::middleware(['auth'])->prefix('teacher')->group(function(){
-
-    // Route::get('/questions/create',[QuestionController::class,'create'])
-    // ->name('teacher.questions.create');
-
-    // Route::post('/questions/store',[QuestionController::class,'store'])
-    // ->name('teacher.questions.store');
-
-});
+/*
+|--------------------------------------------------------------------------
+| Referrer Routes 
+|--------------------------------------------------------------------------
+*/
 
 // referral route
 Route::get('/referrer/dashboard', [ReferrerController::class, 'dashboard'])
@@ -461,7 +626,7 @@ Route::get('/referrer/profile', [ReferrerController::class, 'profile'])
     ->name('referrer.profile');
 
 Route::post('/referrer/profile', [ReferrerController::class, 'updateProfile'])
-    ->name('referrer.profile.update');
+    ->name('referrer.profile.update');   
     
 Route::get('/referrer/password', [ReferrerController::class, 'password'])
     ->name('referrer.password');
@@ -470,7 +635,7 @@ Route::post('/referrer/password', [ReferrerController::class, 'updatePassword'])
     ->name('referrer.password.update');
     
 Route::get('/referrer/activity', [ReferrerController::class, 'activity'])
-    ->name('referrer.activity');    
+    ->name('referrer.activity');  
 
 Route::get('/referrer/withdraw-history', [ReferrerController::class, 'withdrawHistory'])
     ->name('referrer.withdraw.history');
@@ -482,7 +647,9 @@ Route::get('/referrer/settings', [ReferrerController::class, 'settings'])
     ->name('referrer.settings');
 
 Route::post('/referrer/settings', [ReferrerController::class, 'updateSettings'])
-    ->name('referrer.settings.update');    
+    ->name('referrer.settings.update');
+
+// referrer route ends here    
 
 // Authentication routes (from Breeze)
 require __DIR__.'/auth.php';

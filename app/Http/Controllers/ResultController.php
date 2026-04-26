@@ -96,15 +96,148 @@ class ResultController extends Controller
             $request->registration_number
         )->first();
 
+        $school = null;
+
         if (!$student) {
             return back()->with('error', 'Student not found');
         }
 
+        if ($student && $student->school_id) {
+            $school = \App\Models\School::find($student->school_id);
+        }
+
+        $attendanceRows = \App\Models\Attendance::where(
+        'student_details_id',
+        $student->id
+            )
+            ->whereMonth('date', now()->month)
+            ->get();
+
+        $presentDays = $attendanceRows->count();
+
+        $lateDays = $attendanceRows
+            ->where('status', 'late')
+            ->count();
+
+        $schoolDays = 60; // adjust or make dynamic later
+
+        $absentDays = max($schoolDays - $presentDays, 0);
+
+        $attendanceRate = $schoolDays > 0
+            ? round(($presentDays / $schoolDays) * 100, 2)
+            : 0;
+
+        $currentClass = $student->class_id;
+        $nextClass = ++$currentClass;
+
+        $findClass = DB::table('classes')
+        ->where('id', $nextClass)->first();
+
+        $newClass = $findClass->name;
+
+        // new code
+        $fee = DB::table('school_fees')
+        ->where('school_id', $student->school_id)
+        ->where('class_id', $student->class_id)
+        ->latest()
+        ->first();
+
+        $books = DB::table('school_books')
+            ->where('school_id', $student->school_id)
+            ->where('class_id', $student->class_id)
+            ->latest()
+            ->first();
+
+        $paid = DB::table('school_fee_payments')
+            ->where('student_id', $student->user_id)
+            ->where('status', 'confirmed')
+            ->sum('amount');
+
+        $totalFee = 0;
+
+        if ($fee) {
+            $totalFee =
+                ($fee->tuition ?? 0) +
+                ($fee->uniforms ?? 0) +
+                ($fee->sports_wear ?? 0) +
+                ($fee->books ?? 0) +
+                ($fee->exam_fee ?? 0) +
+                ($fee->pta_levy ?? 0) +
+                ($fee->other_fee ?? 0);
+        }
+
+        $balance = $totalFee - $paid;
+
         $results = \App\Models\ResultScore::with('subject')
             ->where('student_details_id', $student->id)
             ->where('session', $request->session)
+            ->where('status', 'released')
             ->where('term', $request->term)
             ->get();
+
+            if ($results->isEmpty()) {
+                return back()->with('error', 'No result found');
+            }
+
+            
+
+            $term = $results->first()->term;
+
+            $nextTerm = match($term) {
+
+                    '1st Term'  => '2nd Term',
+
+                    '2nd Term' => '3rd Term',
+
+                    '3rd Term'  => 'Next Session',
+
+                    default       => 'Next Term',
+                };
+
+                $annualAverage = null;
+
+                $classStudents = \App\Models\ResultScore::where('session', $request->session)
+                ->where('term', $request->term)
+                ->whereHas('student', function ($q) use ($student) {
+                    $q->where('class_id', $student->class_id);
+                })
+                ->get()
+                ->groupBy('student_details_id');
+
+            $rankings = [];
+
+            foreach ($classStudents as $studentId => $rows) {
+                $rankings[$studentId] = round(
+                    $rows->avg('total_score'),
+                    2
+                );
+            }
+
+            arsort($rankings);
+
+            $position = array_search($student->id, array_keys($rankings)) + 1;
+
+            $totalInClass = count($rankings);
+
+                if ($term == '3rd Term') {
+
+                    $allTerms = DB::table('result_scores')
+                        ->where('student_details_id', $student->id)
+                        ->where('session', $request->session)
+                        ->get();
+
+                    if ($allTerms->count() > 0) {
+
+                        $grandTotal = $allTerms->sum('total_score');
+
+                        $subjectCount = $allTerms->count();
+
+                        $annualAverage = round(
+                            $grandTotal / $subjectCount,
+                            2
+                        );
+                    }
+                }
 
             \App\Models\ActivityLog::create([
                 'user_id' => auth()->id(),
@@ -115,6 +248,26 @@ class ResultController extends Controller
             return back()->with('error', 'No result found');
         }
 
-        return view('student.results.show', compact('student', 'results'));
+        return view('student.results.show', compact(
+                'student', 
+                'results', 
+                'school',
+                'fee',
+                'books',
+                'paid',
+                'totalFee',
+                'balance',
+                'term',
+                'nextTerm',
+                'annualAverage',
+                'newClass',
+                'position',
+                'totalInClass',
+                'presentDays',
+                'lateDays',
+                'absentDays',
+                'attendanceRate'
+            ));
     }
+
 }

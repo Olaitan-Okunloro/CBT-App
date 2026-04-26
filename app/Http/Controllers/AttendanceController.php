@@ -8,6 +8,8 @@ use App\Models\TeacherDetail;
 use App\Models\TeacherSubject;
 use App\Models\Attendance;
 use App\Models\User;
+
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -24,8 +26,9 @@ class AttendanceController extends Controller
     {
         try {
 
-            // $student = StudentDetail::where('registration_number', $regNo)->first();
-            $student = \App\Models\StudentDetail::find($request->student_id);
+            $student = \App\Models\StudentDetail::find(
+                $request->student_id
+            );
 
             if (!$student) {
                 return response()->json([
@@ -33,15 +36,42 @@ class AttendanceController extends Controller
                 ], 404);
             }
 
+            $now = now();
+
+            $recent = Attendance::where(
+                    'student_details_id',
+                    $student->id
+                )
+                ->where(
+                    'created_at',
+                    '>=',
+                    $now->copy()->subMinutes(10)
+                )
+                ->first();
+
+            if ($recent) {
+                return response()->json([
+                    'message' =>
+                    'Attendance already marked within last 10 minutes'
+                ]);
+            }
+
             $today = now()->toDateString();
 
-            $status = now()->format('H:i:s') > '08:00:00' ? 'late' : 'checked in';
+            $status =
+                now()->format('H:i:s') > '08:00:00'
+                ? 'late'
+                : 'checked in';
 
-            $attendance = Attendance::where('student_details_id', $student->id)
+            $attendance = Attendance::where(
+                    'student_details_id',
+                    $student->id
+                )
                 ->where('date', $today)
                 ->first();
 
             if (!$attendance) {
+
                 Attendance::create([
                     'student_details_id' => $student->id,
                     'date' => $today,
@@ -50,33 +80,39 @@ class AttendanceController extends Controller
                     'created_by' => auth()->id()
                 ]);
 
-                \App\Models\ActivityLog::create([
-                    'user_id' => auth()->id(),
-                    'activity' => $student->user->name . ' attendance marked'
-                ]);
-
-                $this->sendParentMail($student, 'checked in');
+                $this->sendParentMail($student, $status);
 
                 return response()->json([
-                    'message' => $student->user->name . ' checked in'
+                    'message' =>
+                    ($student->user->name ?? 'Student')
+                    . ' checked in'
                 ]);
             }
 
             if (!$attendance->check_out_time) {
 
                 $attendance->update([
-                    'check_out_time' => now()->format('H:i:s')
-                ]);
+                        'check_out_time' =>
+                            now()->format('H:i:s')
+                    ]);
 
-                $this->sendParentMail($student, 'checked out');
+                    $this->sendParentMail($student, 'checked out');
 
-                return response()->json([
-                    'message' => $student->name . ' checked out'
-                ]);
+                    return response()->json([
+                        'message' =>
+                        ($student->user->name ?? 'Student')
+                        . ' checked out'
+                    ]);
             }
 
+            \App\Models\ActivityLog::create([
+                    'user_id' => auth()->id(),
+                    'activity' => $student->user->name . ' attendance marked'
+                ]);
+
             return response()->json([
-                'message' => 'Attendance already completed today'
+                'message' =>
+                'Attendance already completed today'
             ]);
 
         } catch (\Exception $e) {
@@ -90,51 +126,83 @@ class AttendanceController extends Controller
     // send mail to parent 
     private function sendParentMail($student, $status)
     {
-        if ($student->email_sub != 1 || !$student->guardian_email) {
-            return;
+        try {
+
+            if (
+                !$student ||
+                $student->email_sub != 1 ||
+                empty($student->guardian_email)
+            ) {
+                return;
+            }
+
+            $studentName =
+                optional($student->user)->name ?? 'Student';
+
+            $time = now()->format('g:i A');
+
+            $date = now()->format('d M Y');
+
+            if ($status == 'late') {
+
+                $title = 'Late Attendance Alert';
+
+                $body =
+                    "{$studentName} checked in late at {$time}.";
+
+                $color = '#dc3545';
+
+            } elseif ($status == 'checked in') {
+
+                $title = 'Attendance Check-In';
+
+                $body =
+                    "{$studentName} checked in successfully at {$time}.";
+
+                $color = '#198754';
+
+            } else {
+
+                $title = 'Attendance Check-Out';
+
+                $body =
+                    "{$studentName} checked out at {$time}.";
+
+                $color = '#0d6efd';
+            }
+
+            $html = "
+            <div style='font-family:Arial;padding:20px;background:#f8f9fa'>
+                <div style='max-width:600px;margin:auto;background:white;border-radius:10px;padding:25px'>
+                    <h2 style='color:{$color};margin-bottom:15px;'>{$title}</h2>
+
+                    <p>Hello Parent/Guardian,</p>
+
+                    <p style='font-size:16px;'>{$body}</p>
+
+                    <p>Date: <strong>{$date}</strong></p>
+
+                    <hr>
+
+                    <p style='color:#666;font-size:13px;'>
+                        This is an automated notification from the school attendance system.
+                    </p>
+                </div>
+            </div>";
+
+            \Mail::html($html, function ($mail) use ($student, $title) {
+
+                $mail->to($student->guardian_email)
+                    ->subject($title);
+
+            });
+
+        } catch (\Exception $e) {
+
+            \Log::error(
+                'Attendance mail failed: ' . $e->getMessage()
+            );
         }
-
-        $studentName = $student->user->name ?? 'Student';
-        $time = now()->format('g:i A');
-        $date = now()->format('d M Y');
-
-        if ($status == 'late') {
-            $title = 'Late Attendance Alert';
-            $body = "{$studentName} checked in late at {$time}.";
-            $color = '#dc3545';
-        } elseif ($status == 'checked in') {
-            $title = 'Attendance Check-In';
-            $body = "{$studentName} checked in successfully at {$time}.";
-            $color = '#198754';
-        } else {
-            $title = 'Attendance Check-Out';
-            $body = "{$studentName} checked out at {$time}.";
-            $color = '#0d6efd';
-        }
-
-        $html = "
-        <div style='font-family:Arial;padding:20px;background:#f8f9fa'>
-            <div style='max-width:600px;margin:auto;background:white;border-radius:10px;padding:25px'>
-                <h2 style='color:$color;margin-bottom:15px;'>$title</h2>
-
-                <p>Hello Parent/Guardian,</p>
-
-                <p style='font-size:16px;'>$body</p>
-
-                <p>Date: <strong>$date</strong></p>
-
-                <hr>
-
-                <p style='color:#666;font-size:13px;'>
-                    This is an automated notification from the school attendance system.
-                </p>
-            </div>
-        </div>";
-
-        \Mail::html($html, function ($mail) use ($student, $title) {
-            $mail->to($student->guardian_email)
-                ->subject($title);
-        });
     }
 
     public function dashboard()

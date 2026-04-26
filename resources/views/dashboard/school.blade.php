@@ -22,7 +22,7 @@
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-8">
-                            <div class="text-xs text-muted text-uppercase mb-1">Total Teachers</div>
+                            <div class="text-xs text-success text-uppercase mb-1">Total Teachers</div>
                             <div class="h3 mb-0 font-weight-bold">{{ $teachers ?? 0 }}</div>
                         </div>
                         <div class="col-4 text-end">
@@ -38,7 +38,7 @@
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-8">
-                            <div class="text-xs text-muted text-uppercase mb-1">Total Students</div>
+                            <div class="text-xs text-success text-uppercase mb-1">Total Students</div>
                             <div class="h3 mb-0 font-weight-bold">{{ $students ?? 0 }}</div>
                         </div>
                         <div class="col-4 text-end">
@@ -54,7 +54,7 @@
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-8">
-                            <div class="text-xs text-muted text-uppercase mb-1">Total Classes</div>
+                            <div class="text-xs text-success text-uppercase mb-1">Total Classes</div>
                             <div class="h3 mb-0 font-weight-bold">{{ $classes ?? 0 }}</div>
                         </div>
                         <div class="col-4 text-end">
@@ -70,8 +70,8 @@
                 <div class="card-body">
                     <div class="row align-items-center">
                         <div class="col-8">
-                            <div class="text-xs text-muted text-uppercase mb-1">Active Today</div>
-                            <div class="h3 mb-0 font-weight-bold">24</div>
+                            <div class="text-xs text-success text-uppercase mb-1">Active Users</div>
+                            <div class="h3 mb-0 font-weight-bold">{{ $activeUsers ?? 0 }}</div>
                         </div>
                         <div class="col-4 text-end">
                             <i class="fas fa-clock fa-3x text-warning opacity-25"></i>
@@ -88,7 +88,7 @@
             <div class="card">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-chalkboard-teacher me-2 text-primary"></i>Recent Teachers</h5>
-                    <a href="#" class="btn btn-sm btn-primary">View All</a>
+                    <a href="{{ route('school.teachers') }}" class="btn btn-sm btn-primary">View All</a>
                 </div>
                 <div class="card-body">
                     @if(isset($recentTeachers) && $recentTeachers->count() > 0)
@@ -129,7 +129,7 @@
             <div class="card">
                 <div class="card-header bg-white d-flex justify-content-between align-items-center">
                     <h5 class="mb-0"><i class="fas fa-user-graduate me-2 text-success"></i>Recent Students</h5>
-                    <a href="#" class="btn btn-sm btn-success">View All</a>
+                    <a href="{{ route('school.students') }}" class="btn btn-sm btn-success">View All</a>
                 </div>
                 <div class="card-body">
                     @if(isset($recentStudents) && $recentStudents->count() > 0)

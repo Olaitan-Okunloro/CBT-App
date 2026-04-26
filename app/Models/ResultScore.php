@@ -26,4 +26,12 @@ class ResultScore extends Model
     {
         return $this->belongsTo(\App\Models\Subject::class, 'subject_id');
     }
+
+    public function student()
+    {
+        return $this->belongsTo(
+            \App\Models\StudentDetail::class,
+            'student_details_id'
+        );
+    }
 }

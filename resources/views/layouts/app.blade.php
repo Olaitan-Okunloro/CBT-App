@@ -22,7 +22,7 @@
     
     <style>
         body {
-            background: black;
+            background: white;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
@@ -110,6 +110,38 @@
             padding: 5px 10px;
             border-radius: 20px;
         }
+
+        body.dark-mode {
+            background: #121212 !important;
+            color: #ffffff;
+            }
+
+            body.dark-mode .card {
+                background: #1e1e1e;
+                color: #ffffff;
+            }
+
+            body.dark-mode .table {
+                color: #ffffff;
+            }
+
+            body.dark-mode .footer {
+                background: #1e1e1e;
+                color: #ffffff;
+            }
+
+            body.dark-mode .dropdown-menu {
+                background: #1e1e1e;
+                color: #ffffff;
+            }
+
+            body.dark-mode .dropdown-item {
+                color: #ffffff;
+            }
+
+            body.dark-mode .dropdown-item:hover {
+                background: #333333;
+            }
     </style>
 </head>
 <body>
@@ -151,7 +183,7 @@
                         @isset($student)
                         <li class="nav-item">
                             <a class="nav-link" href="{{ route('student.qrcode', $student->user_id) }}">
-                                <i class="fas fa-qrcode me-1"></i>View QR Code
+                                <i class="fas fa-qrcode me-1"></i>QR Code
                             </a>
                         </li>
                         @endisset
@@ -166,6 +198,25 @@
                                href="{{ route('results.checker') }}">
                                 <i class="fas fa-chart-bar me-1"></i>My Results
                             </a>
+                        </li>
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle " 
+                               href="#" id="resultsDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-credit-card me-1"></i>Payment
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('student.school.fees') }}">
+                                        <i class="fas fa-upload me-2"></i>Add Payment
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('student.fees.history') }}">
+                                        <i class="fas fa-clock me-2"></i>Payment History
+                                    </a>
+                                </li>
+                            </ul>
                         </li>
                         @endif
 
@@ -299,13 +350,6 @@
                                 </li>
                             </ul>
                         </li>
-
-                        <li class="nav-item">
-                            <a class="nav-link " 
-                               href="">
-                                <i class="fas fa-users me-1"></i>Students
-                            </a>
-                        </li>
                         @endif
 
                         <!-- In your app.blade.php navbar section, ensure school links are present -->
@@ -322,7 +366,7 @@
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <a class="dropdown-item" href="#">
+                                    <a class="dropdown-item" href="{{ route('school.teachers') }}">
                                         <i class="fas fa-chalkboard-teacher me-2"></i>Teachers
                                     </a>
                                 </li>
@@ -332,12 +376,12 @@
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="{{ route('teacher-subjects.index') }}">
+                                    <a class="dropdown-item" href="{{ route('school.teacher-subjects.index') }}">
                                         <i class="fas fa-plus me-2"></i>Teacher/Subjects
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="{{ route('teacher-subjects.create') }}">
+                                    <a class="dropdown-item" href="{{ route('school.teacher-subjects.create') }}">
                                         <i class="fas fa-plus me-2"></i>Assign Subjects to Teacher
                                     </a>
                                 </li>
@@ -354,7 +398,7 @@
                                 </li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li>
-                                    <a class="dropdown-item" href="#">
+                                    <a class="dropdown-item" href="{{ route('school.students') }}">
                                         <i class="fas fa-user-graduate me-2"></i>Students
                                     </a>
                                 </li>
@@ -417,10 +461,53 @@
                                         <i class="fas fa-hand-holding-usd me-2"></i>Payment History
                                     </a>
                                 </li>
-                                
                                 <li>
-                                    <a class="dropdown-item" href="{{ route('bulk.payment.analytics') }}">
-                                        <i class="fas fa-magnifying-glass-chart me-2"></i>Payment Analytics
+                                    <a class="dropdown-item" href="{{ route('school.finance.dashboard') }}">
+                                        <i class="fas fa-chart-pie me-2"></i>Financial History
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('school.fees') }}">
+                                        <i class="fas fa-credit-card  me-2"></i>Add School Fees
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('school.fees.payments') }}">
+                                        <i class="fas fa-hand-holding-usd me-2"></i>School Fees Payments
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="schoolDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-chart-simple me-1"></i>Mnage Results
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('dashboard') }}">
+                                        <i class="fas fa-tachometer-alt me-2"></i>Dashboard
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('school.results.manage') }}">
+                                        <i class="fas fa-chart-simple me-2"></i>Release Results
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('school.promotion') }}">
+                                        <i class="fas fa-crown me-2"></i>Pomote Students
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('school.books') }}">
+                                        <i class="fas fa-book-reader  me-2"></i>School Books
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('school.results.remarks') }}">
+                                        <i class="fas fa-marker  me-2"></i>Result Remarks
                                     </a>
                                 </li>
                             </ul>
@@ -539,15 +626,11 @@
                             </a>
                             <ul class="dropdown-menu">
                                 <li>
-                                    <a class="dropdown-item" href="#">
+                                    <a class="dropdown-item" href="{{ route('admin.users') }}">
                                         <i class="fas fa-users me-2"></i>Manage Users
                                     </a>
                                 </li>
-                                <li>
-                                    <a class="dropdown-item" href="{{ route('dashboard.leaderboard') }}">
-                                        <i class="fas fa-credit-card me-2"></i>Analytics
-                                    </a>
-                                </li>
+                                
                                 <li>
                                     <a class="dropdown-item" href="#">
                                         <i class="fas fa-credit-card me-2"></i>Payments
@@ -556,6 +639,33 @@
                                 <li>
                                     <a class="dropdown-item" href="#">
                                         <i class="fas fa-chart-bar me-2"></i>Reports
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item"
+                                    href="{{ route('admin.announcements') }}">
+                                        <i class="fas fa-bullhorn me-2"></i>
+                                        Announcements
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item"
+                                    href="{{ route('admin.settings') }}">
+                                        <i class="fas fa-cog me-2"></i>
+                                        Settings
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-headset me-2"></i>Support
+                            </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('admin.support') }}">
+                                        <i class="fas fa-ticket-alt me-2"></i>Tickets
                                     </a>
                                 </li>
                             </ul>
@@ -580,13 +690,6 @@
                                     </a>
                                 </li>
 
-                                <!-- <li>
-                                    <a class="dropdown-item"
-                                    href="{{ route('referrer.dashboard') }}">
-                                        <i class="fas fa-wallet me-2"></i>Wallet
-                                    </a>
-                                </li> -->
-
                                 <li>
                                     <a class="dropdown-item"
                                     href="{{ route('admin.withdrawals') }}">
@@ -596,7 +699,7 @@
 
                                 <li>
                                     <a class="dropdown-item"
-                                    href="{{ route('referrer.withdraw.history') }}">
+                                        href="{{ route('admin.withdraw.history') }}">
                                         <i class="fas fa-clock-rotate-left me-2"></i>
                                         Withdrawal History
                                     </a>
@@ -604,17 +707,9 @@
 
                                 <li>
                                     <a class="dropdown-item"
-                                    href="{{ route('referrer.analytics') }}">
+                                    href="{{ route('admin.analytics') }}">
                                         <i class="fas fa-chart-line me-2"></i>
                                         Analytics
-                                    </a>
-                                </li>
-
-                                <li>
-                                    <a class="dropdown-item"
-                                    href="{{ route('referrer.settings') }}">
-                                        <i class="fas fa-cog me-2"></i>
-                                        Settings
                                     </a>
                                 </li>
 
@@ -681,10 +776,13 @@
                                     <div class="dropdown-item-text py-2 px-3">
 
                                         <small class="d-block">
-                                            {{ $note->activity }}
+                                            <p style="background-color:green; color:white; 
+                                                    border-radius:5px; text-align:center"> 
+                                                {{ $note->activity }} 
+                                            </p>
                                         </small>
 
-                                        <small class="text-muted">
+                                        <small class="text-success">
                                             {{ \Carbon\Carbon::parse($note->created_at)->diffForHumans() }}
                                         </small>
 
@@ -708,6 +806,18 @@
                                 </div>
 
                             </div>
+
+                            <li class="nav-item me-2">
+
+                                <button class="btn btn-sm btn-outline-light"
+                                        onclick="toggleTheme()"
+                                        id="themeBtn">
+
+                                    <i class="fas fa-moon"></i>
+
+                                </button>
+
+                            </li>
 
                         </li>
                         </li>
@@ -745,12 +855,16 @@
                                 $role = auth()->user()->role;
                                 $profileRoute = match($role) {
                                     'student'   => 'student.profile',
+                                    'admin'   => 'admin.profile',
+                                    'school'   => 'school.profile',
                                     'referrer'  => 'referrer.profile',
                                     default     => 'dashboard'
                                 };
 
                                 $passwordRoute = match($role) {
                                     'student'   => 'student.password',
+                                    'admin'   => 'admin.password',
+                                    'school'   => 'school.password',
                                     'referrer'  => 'referrer.password',
                                     default     => 'dashboard'
                                 };
@@ -758,6 +872,8 @@
                                 $activityRoute = match($role) {
                                     'student'   => 'student.activity',
                                     'referrer'  => 'referrer.activity',
+                                    'admin'   => 'admin.activity',
+                                    'school'   => 'school.activity',
                                     default     => 'dashboard'
                                 };
                             @endphp
@@ -861,6 +977,36 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+    <script>
+        function toggleTheme()
+        {
+            document.body.classList.toggle('dark-mode');
+
+            if (document.body.classList.contains('dark-mode')) {
+                localStorage.setItem('theme', 'dark');
+                document.getElementById('themeBtn').innerHTML =
+                    '<i class="fas fa-sun"></i>';
+            } else {
+                localStorage.setItem('theme', 'light');
+                document.getElementById('themeBtn').innerHTML =
+                    '<i class="fas fa-moon"></i>';
+            }
+        }
+
+        window.onload = function () {
+
+            let savedTheme = localStorage.getItem('theme');
+
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+
+                document.getElementById('themeBtn').innerHTML =
+                    '<i class="fas fa-sun"></i>';
+            }
+        };
+    </script>
     
     <!-- Toastr Configuration -->
     <script>
