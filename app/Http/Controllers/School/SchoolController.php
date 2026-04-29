@@ -22,6 +22,22 @@ class SchoolController extends Controller
 
     public function dashboard()
     {
+        $announcements = \App\Models\Announcement::where(
+            'status',
+            'active'
+        )
+        ->where(function ($q) {
+
+            $q->where('audience', 'all')
+              ->orWhere(
+                  'audience',
+                  auth()->user()->role
+              );
+        })
+        ->latest()
+        ->take(5)
+        ->get();
+
         $user = auth()->user();
         $schoolDetail = $user->schoolDetail;
         $school = $schoolDetail->school ?? null;
@@ -60,24 +76,12 @@ class SchoolController extends Controller
             'classes',  // Now this is a count, not a collection
             'recentTeachers', 
             'recentStudents',
-            'school'
+            'school',
+            'announcements'
         ));
     }
     
-    /**
-     * Display list of teachers
-     */
-    // public function teachers()
-    // {
-    //     $user = auth()->user();
-    //     $school = $user->schoolDetail->school;
-        
-    //     $teachers = TeacherDetail::with('user')
-    //         ->where('school_id', $school->school_id)
-    //         ->paginate(10);
-            
-    //     return view('school.teacher.index', compact('teachers'));
-    // }
+
 
     public function teachers(Request $request)
     {
@@ -139,45 +143,28 @@ class SchoolController extends Controller
         );
     }
 
-    // public function toggleTeacher($id)
-    // {
-    //     $user = \App\Models\User::findOrFail($id);
+    public function toggleTeacher($id)
+    {
+        $user = \App\Models\User::findOrFail($id);
 
-    //     $user->status =
-    //         ($user->status ?? 'active') == 'active'
-    //         ? 'suspended'
-    //         : 'active';
+        $newStatus =
+            ($user->status == 'active')
+            ? 'suspended'
+            : 'active';
 
-    //     $user->save();
+        \Illuminate\Support\Facades\DB::table('users')
+            ->where('id', $id)
+            ->update([
+                'status' => $newStatus
+            ]);
 
-    //     return back()->with(
-    //         'success',
-    //         'Teacher status updated'
-    //     );
-    // }
-
- public function toggleTeacher($id)
-{
-    $user = \App\Models\User::findOrFail($id);
-
-    $newStatus =
-        ($user->status == 'active')
-        ? 'suspended'
-        : 'active';
-
-    \Illuminate\Support\Facades\DB::table('users')
-        ->where('id', $id)
-        ->update([
-            'status' => $newStatus
-        ]);
-
-    return redirect()
-        ->back()
-        ->with(
-            'success',
-            'Teacher status updated successfully'
-        );
-}
+        return redirect()
+            ->back()
+            ->with(
+                'success',
+                'Teacher status updated successfully'
+            );
+    }
 
     public function deleteTeacher($id)
     {
@@ -991,6 +978,68 @@ class SchoolController extends Controller
             ->paginate(10);
 
         return view('referrer.activity', compact('logs'));
+    }
+
+    public function questions(Request $request)
+    {
+        $school = auth()->user()->schoolDetail->school;
+
+        // ✅ GET TEACHERS IN THIS SCHOOL
+        $teachers = \App\Models\User::where('role', 'teacher')
+            ->whereHas('teacherDetail', function ($q) use ($school) {
+                $q->where('school_id', $school->id);
+            })
+            ->get();
+
+        // ✅ GET SUBJECTS (you can refine later per school)
+        $subjects = \App\Models\Subject::all();
+
+        $query = \App\Models\Question::with(['user', 'subject'])
+            ->where('school_id', $school->id)
+            ->where('exam_cat_id', 1)
+            ->where('status', 'pending');
+
+        if ($request->teacher_id) {
+            $query->where('created_by', $request->teacher_id);
+        }
+
+        if ($request->subject_id) {
+            $query->where('subject_id', $request->subject_id);
+        }
+
+        $rows = $query->with(['user', 'subject', 'options'])
+        ->latest()
+        ->paginate(20);
+
+        return view(
+            'school.questions.index',
+            compact('rows', 'teachers', 'subjects')
+        );
+    }
+
+    public function approve($id)
+    {
+        $question = \App\Models\Question::findOrFail($id);
+
+        $question->update([
+            'status' => 'approved'
+        ]);
+
+        return back()->with('success', 'Question approved');
+    }
+
+    public function bulkApprove(Request $request)
+    {
+        $ids = $request->question_ids;
+
+        if (!$ids || count($ids) == 0) {
+            return back()->with('error', 'No questions selected');
+        }
+
+        \App\Models\Question::whereIn('id', $ids)
+            ->update(['status' => 'approved']);
+
+        return back()->with('success', count($ids) . ' questions approved');
     }
 
 }

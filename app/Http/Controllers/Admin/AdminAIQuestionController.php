@@ -15,6 +15,48 @@ use App\Models\Option;
 
 class AdminAIQuestionController extends Controller
 {
+
+    public function admin(Request $request)
+    {
+        $query = \App\Models\QuestionBank::with([
+            'subject',
+            'classLevel',
+            'topic'
+        ]);
+
+        if ($request->subject_id) {
+            $query->where('subject_id', $request->subject_id);
+        }
+
+        if ($request->class_level_id) {
+            $query->where('class_level_id', $request->class_level_id);
+        }
+
+        if ($request->topic_id) {
+            $query->where('topic_id', $request->topic_id);
+        }
+
+        $rows = $query->latest()->paginate(20);
+
+        $subjects = \App\Models\Subject::all();
+        $classes  = \App\Models\ClassLevel::all();
+        $topics   = \App\Models\Topic::all();
+
+        return view(
+            'admin.question-bank.index',
+            compact('rows', 'subjects', 'classes', 'topics')
+        );
+    }
+
+    public function delete($id)
+    {
+        $q = \App\Models\QuestionBank::findOrFail($id);
+
+        $q->delete();
+
+        return back()->with('success', 'Question deleted');
+    }
+    
     /**
      * Show AI question generator form
      */

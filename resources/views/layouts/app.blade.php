@@ -166,37 +166,119 @@
                             </a>
                         </li>
 
+                        <!-- Support Center (All Users) -->
+                         @if(auth()->user()->role != 'admin')
+                            
+                        <li class="nav-item dropdown">
+
+                            <a class="nav-link dropdown-toggle"
+                            href="#"
+                            id="supportDropdown"
+                            role="button"
+                            data-bs-toggle="dropdown">
+
+                                <i class="fas fa-headset me-1"></i>
+                                Support
+
+                            </a>
+
+                            <ul class="dropdown-menu">
+
+                                <li>
+
+                                    <a class="dropdown-item"
+                                    href="{{ route('support.index') }}">
+
+                                        <i class="fas fa-ticket-alt me-2"></i>
+                                        My Tickets
+
+                                    </a>
+
+                                </li>
+
+                                <li>
+
+                                    <a class="dropdown-item"
+                                    href="{{ route('support.create') }}">
+
+                                        <i class="fas fa-plus-circle me-2"></i>
+                                        Create Ticket
+
+                                    </a>
+
+                                </li>
+
+                                @if(auth()->user()->role == 'admin')
+
+                                <li>
+                                    <hr class="dropdown-divider">
+                                </li>
+
+                                <li>
+
+                                    <a class="dropdown-item"
+                                    href="{{ route('admin.support') }}">
+
+                                        <i class="fas fa-inbox me-2"></i>
+                                        Support Inbox
+
+                                    </a>
+
+                                </li>
+
+                                @endif
+
+                            </ul>
+
+                        </li>
+                        @endif
+
                         <!-- Student Links -->
                         @if(auth()->user()->role == 'student')
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('student.exams.available') ? 'active' : '' }}" 
-                               href="{{ route('student.exams.available') }}">
-                                <i class="fas fa-book-open me-1"></i>Available Exams
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle " 
+                               href="#" id="resultsDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="fas fa-diagram-project me-1"></i>Activity
                             </a>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="nav-link {{ request()->routeIs('student.exams.available') ? 'active' : '' }}" 
+                                        href="{{ route('student.exams.available') }}">
+                                        <i class="fas fa-book-open me-1"></i>Available Exams
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="nav-link {{ request()->routeIs('results.checker') ? 'active' : '' }}" 
+                                        href="{{ route('results.checker') }}">
+                                        <i class="fas fa-chart-bar me-1"></i>My Results
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="nav-link {{ request()->routeIs('student.practice.dashboard') ? 'active' : '' }}" 
+                                        href="{{ route('student.practice.dashboard') }}">
+                                        <i class="fas fa-chart-bar me-1"></i>Practice
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="nav-link {{ request()->routeIs('student.leaderboard') ? 'active' : '' }}" 
+                                    href="{{ route('student.leaderboard') }}">
+                                        <i class="fas fa-chart-bar me-1"></i>Leaders
+                                    </a>
+                                </li>
+                                @isset($student)
+                                <li>
+                                    <a class="nav-link" href="{{ route('student.qrcode', $student->user_id) }}">
+                                        <i class="fas fa-qrcode me-1"></i>QR Code
+                                    </a>
+                                </li>
+                                @endisset
+                            </ul>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('student.leaderboard') ? 'active' : '' }}" 
-                               href="{{ route('student.leaderboard') }}">
-                                <i class="fas fa-chart-bar me-1"></i>Leader dashboard
-                            </a>
-                        </li>
-                        @isset($student)
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ route('student.qrcode', $student->user_id) }}">
-                                <i class="fas fa-qrcode me-1"></i>QR Code
-                            </a>
-                        </li>
-                        @endisset
+                    
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('student.analytics') ? 'active' : '' }}" 
                                href="{{ route('student.analytics') }}">
                                 <i class="fas fa-chart-bar me-1"></i>Analytics
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link {{ request()->routeIs('results.checker') ? 'active' : '' }}" 
-                               href="{{ route('results.checker') }}">
-                                <i class="fas fa-chart-bar me-1"></i>My Results
                             </a>
                         </li>
 
@@ -244,6 +326,16 @@
                                     </a>
                                 </li>
                                 <li>
+                                    <a class="dropdown-item" href="{{ route('teacher.exam.paper') }}">
+                                        <i class="fas fa-clipboard-question me-2"></i>Exam Questions
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('teacher.answer.sheet') }}">
+                                        <i class="fas fa-clipboard-check me-2"></i>Answer Sheet
+                                    </a>
+                                </li>
+                                <li>
                                     <a class="dropdown-item" href="#">
                                         <i class="fas fa-calendar me-2"></i>Scheduled Exams
                                     </a>
@@ -251,6 +343,21 @@
                                 <li>
                                     <a class="dropdown-item" href="#">
                                         <i class="fas fa-check-circle me-2"></i>Completed Exams
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="">
+                                        <i class="fas fa-list me-2"></i>All Results
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="">
+                                        <i class="fas fa-chart-pie me-2"></i>Analytics
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="">
+                                        <i class="fas fa-download me-2"></i>Export Results
                                     </a>
                                 </li>
                             </ul>
@@ -274,7 +381,7 @@
                                 </li>
         
                                 <li>
-                                    <a class="dropdown-item" href="">
+                                    <a class="dropdown-item" href="{{ route('teacher.questions') }}">
                                         <i class="fas fa-database me-2"></i>Question Bank
                                     </a>
                                 </li>
@@ -327,29 +434,15 @@
                             </ul>
                         </li>
 
-                        <li class="nav-item dropdown">
+                        <!-- <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle " 
                                href="#" id="resultsDropdown" role="button" data-bs-toggle="dropdown">
                                 <i class="fas fa-chart-line me-1"></i>Results
                             </a>
                             <ul class="dropdown-menu">
-                                <li>
-                                    <a class="dropdown-item" href="">
-                                        <i class="fas fa-list me-2"></i>All Results
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="">
-                                        <i class="fas fa-chart-pie me-2"></i>Analytics
-                                    </a>
-                                </li>
-                                <li>
-                                    <a class="dropdown-item" href="">
-                                        <i class="fas fa-download me-2"></i>Export Results
-                                    </a>
-                                </li>
+                                
                             </ul>
-                        </li>
+                        </li> -->
                         @endif
 
                         <!-- In your app.blade.php navbar section, ensure school links are present -->
@@ -510,6 +603,11 @@
                                         <i class="fas fa-marker  me-2"></i>Result Remarks
                                     </a>
                                 </li>
+                                <li>
+                                    <a class="dropdown-item" href="{{ route('school.questions') }}">
+                                        <i class="fas fa-database me-2"></i>Question Bank
+                                    </a>
+                                </li>
                             </ul>
                         </li>
                         @endif
@@ -591,18 +689,18 @@
                                 <i class="fas fa-question-circle me-1"></i>Questions
                             </a>
                             <ul class="dropdown-menu">
-                                <li>
+                                <!-- <li>
                                     <a class="dropdown-item" href="{{ route('teacher.questions.create') }}">
                                         <i class="fas fa-plus me-2"></i>Create Question
                                     </a>
-                                </li>
+                                </li> -->
                                 <li>
                                     <a class="dropdown-item" href="{{ route('admin.ai.generator') }}">
                                         <i class="fas fa-robot me-2"></i>AI Question Generator
                                     </a>
                                 </li>
                                 <li>
-                                    <a class="dropdown-item" href="">
+                                    <a class="dropdown-item" href="{{ route('admin.qb') }}">
                                         <i class="fas fa-database me-2"></i>Question Bank
                                     </a>
                                 </li>
@@ -856,6 +954,7 @@
                                 $profileRoute = match($role) {
                                     'student'   => 'student.profile',
                                     'admin'   => 'admin.profile',
+                                    'teacher'   => 'teacher.profile',
                                     'school'   => 'school.profile',
                                     'referrer'  => 'referrer.profile',
                                     default     => 'dashboard'
@@ -864,6 +963,7 @@
                                 $passwordRoute = match($role) {
                                     'student'   => 'student.password',
                                     'admin'   => 'admin.password',
+                                    'teacher'   => 'teacher.password',
                                     'school'   => 'school.password',
                                     'referrer'  => 'referrer.password',
                                     default     => 'dashboard'
@@ -873,6 +973,7 @@
                                     'student'   => 'student.activity',
                                     'referrer'  => 'referrer.activity',
                                     'admin'   => 'admin.activity',
+                                    'teacher'   => 'teacher.activity',
                                     'school'   => 'school.activity',
                                     default     => 'dashboard'
                                 };

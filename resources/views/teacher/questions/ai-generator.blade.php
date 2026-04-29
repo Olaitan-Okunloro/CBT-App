@@ -4,336 +4,599 @@
 
 @section('content')
 <div class="container">
+
     <div class="row justify-content-center">
+
         <div class="col-md-10">
+
             <div class="card shadow-sm">
+
                 <div class="card-header bg-primary text-white">
                     <h4 class="mb-0">
-                        <i class="fas fa-robot me-2"></i>AI Question Generator
+                        <i class="fas fa-robot me-2"></i>
+                        AI Question Generator
                     </h4>
                 </div>
 
                 <div class="card-body">
+
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Generate high-quality exam questions using AI. Provide the parameters below and let AI do the work!
+                        Generate quality questions using AI.
+                        Multiple topics supported.
                     </div>
 
-                    <!-- Generation Form -->
-                    <form method="POST" action="{{ route('teacher.ai.generate') }}" id="generationForm">
+                    <form id="generationForm">
+
                         @csrf
-                        
-                        <select name="class_level_id" id="classSelect" class="form-control">
-    <option value="">Select Class</option>
-    @foreach($classes as $class)
-        <option value="{{ $class->id }}">{{ $class->name }}</option>
-    @endforeach
-</select>
+                        <div class="mb-3">
+                            <label>Exam Category</label>
 
-<div class="mb-3">
-    <label style="color: white">Subject</label>
-    <select name="subject_id" id="subjectSelect" class="form-control">
-        <option value="">Select Subject</option>
-    </select>
-</div>
+                            <select name="exam_cat_id"
+                                    id="examSelect"
+                                    class="form-control"
+                                    required>
 
-<div class="mb-3">
-    <label style="color: white">Topic</label>
-    <select name="topic_id" id="topicSelect" class="form-control">
-        <option value="">Select Topic</option>
-    </select>
-</div>
+                                <option value="">
+                                    Select Exam Category
+                                </option>
 
-                            
+                                @foreach($categories as $cat)
+
+                                    <option value="{{ $cat->id }}">
+                                        {{ $cat->category }}
+                                    </option>
+
+                                @endforeach
+
+                            </select>
+
+                        </div>
+                        <div class="mb-3">
+                            <label>Class</label>
+
+                            <select name="class_level_id"
+                                    id="classSelect"
+                                    class="form-control"
+                                    required>
+
+                                <option value="">
+                                    Select Class
+                                </option>
+
+                                @foreach($classes as $class)
+
+                                    <option value="{{ $class->id }}">
+                                        {{ $class->name }}
+                                    </option>
+
+                                @endforeach
+
+                            </select>
+
                         </div>
 
+                        <div class="mb-3">
+
+                            <label>Subject</label>
+
+                            <select name="subject_id"
+                                    id="subjectSelect"
+                                    class="form-control"
+                                    required>
+
+                                <option value="">
+                                    Select Subject
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label>Topics</label>
+
+                            <select id="topicSelect"
+                                    class="form-control">
+
+                                <option value="">
+                                    Select Topic
+                                </option>
+
+                            </select>
+
+                        </div>
+
+                        <div id="selectedTopics"
+                             class="mb-3"></div>
+
                         <div class="row">
-        
-                            <!-- <div class="mb-3">
-                                <label style="color: white">Subject</label>
-                                <select name="subject_id" id="subjectSelect" class="form-control">
-                                    <option value="">Select Subject</option>
-                                </select>
-                            </div> -->
-                            
+
                             <div class="col-md-4 mb-3">
-                                <label class="form-label fw-bold">Number of Questions <span class="text-danger">*</span></label>
-                                <input type="number" name="count" class="form-control" 
-                                    value="10" min="1" max="50" required>
+
+                                <label>Number of Questions</label>
+
+                                <input type="number"
+                                       name="count"
+                                       class="form-control"
+                                       
+                                       min="1"
+                                       max="50">
+
                             </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Difficulty Level <span class="text-danger">*</span></label>
-                                <select name="difficulty" class="form-select" required>
-                                    <option value="easy">Easy</option>
-                                    <option value="medium" selected>Medium</option>
-                                    <option value="hard">Hard</option>
+                            <div class="col-md-4 mb-3">
+
+                                <label>Difficulty</label>
+
+                                <select name="difficulty"
+                                        class="form-control">
+
+                                    <option value="easy">
+                                        Easy
+                                    </option>
+
+                                    <option value="medium" selected>
+                                        Medium
+                                    </option>
+
+                                    <option value="hard">
+                                        Hard
+                                    </option>
+
                                 </select>
+
                             </div>
+
+                            <div class="col-md-4 mb-3">
+
+                                <label>Question Type</label>
+
+                                <select name="question_type"
+                                        id="questionType"
+                                        class="form-control">
+
+                                    <option value="objective">
+                                        Objective
+                                    </option>
+
+                                    <option value="fill_in_the_gap">
+                                        Fill in the Gap
+                                    </option>
+
+                                    <option value="mixed">
+                                        Mixed
+                                    </option>
+
+                                </select>
+
+                            </div>
+
                         </div>
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label fw-bold">Question Type <span class="text-danger">*</span></label>
-                                <select name="question_type" class="form-select" id="questionType" required>
-                                    <option value="objective">Objective (Multiple Choice)</option>
-                                    <option value="fill_in_the_gap">Fill in the Gap</option>
-                                    <option value="mixed">Mixed (Both Types)</option>
-                                </select>
-                            </div>
+                        <div class="mb-3"
+                             id="optionsCountDiv">
 
-                            <div class="col-md-6 mb-3" id="optionsCountDiv">
-                                <label class="form-label fw-bold">Number of Options</label>
-                                <select name="options_count" class="form-select">
-                                    <option value="2">2 Options</option>
-                                    <option value="3">3 Options</option>
-                                    <option value="4" selected>4 Options</option>
-                                </select>
-                            </div>
+                            <label>Options Count</label>
 
-                            <div class="col-md-6 mb-3">
-                                <label>
-                                    <input type="checkbox" name="explanation"> Include Explanation
-                                </label>
-                            </div>
+                            <select name="options_count"
+                                    class="form-control">
+
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4" selected>4</option>
+
+                            </select>
+
                         </div>
 
-                        <!-- <div class="mb-3">
-                            <label class="form-label fw-bold">Additional Instructions (Optional)</label>
-                            <textarea name="instructions" class="form-control" rows="2" 
-                                      placeholder="e.g., Include diagrams, focus on calculations, emphasize key concepts..."></textarea>
-                        </div> -->
+                        <button type="submit"
+                                class="btn btn-primary w-100"
+                                id="generateBtn">
 
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary btn-lg" id="generateBtn">
-                                <i class="fas fa-magic me-2"></i>Generate Questions with AI
-                            </button>
-                        </div>
+                            Generate Questions
+
+                        </button>
+
                     </form>
 
-                    <!-- Loading Indicator -->
-                    <div id="loadingIndicator" class="text-center mt-4" style="display: none;">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Generating...</span>
-                        </div>
-                        <p class="mt-2">AI is generating your questions. This may take a few seconds...</p>
+                    <div id="loadingIndicator"
+                         class="text-center mt-3"
+                         style="display:none;">
+
+                        Generating...
+
                     </div>
 
-                    <!-- Generated Questions Preview -->
-                    <div id="questionsPreview" style="display: none;">
-                        <hr class="my-4">
-                        <h5 class="mb-3">
-                            <i class="fas fa-check-circle text-success me-2"></i>
-                            Generated Questions
-                            <span id="questionCount" class="badge bg-primary ms-2"></span>
-                        </h5>
-                        
-                        <div id="questionsList" class="mb-3"></div>
-                        
-                        <form id="saveForm" method="POST" action="{{ route('teacher.ai.save') }}">
-                            @csrf
-                            <input type="hidden" name="questions" id="savedQuestions">
-                            <input type="hidden" name="subject_id" id="subjectId">
-                            <input type="hidden" name="topic_id" id="topicId">
-                            
-                            <div class="d-flex gap-2">
-                                <button type="button" class="btn btn-secondary" onclick="regenerate()">
-                                    <i class="fas fa-sync-alt me-2"></i>Regenerate
-                                </button>
-                                <button type="submit" class="btn btn-success">
-                                    <i class="fas fa-save me-2"></i>Save All Questions
-                                </button>
-                            </div>
-                        </form>
-                    </div>
                 </div>
+
             </div>
+
+            {{-- PREVIEW --}}
+            <div id="questionsPreview"
+                 class="card shadow-sm mt-4"
+                 style="display:none;">
+
+                <div class="card-header bg-success text-white">
+
+                    Generated Questions
+                    (<span id="questionCount">0</span>)
+
+                </div>
+
+                <div class="card-body">
+
+                    <div id="questionsList"></div>
+
+                    <form method="POST"
+                          action="{{ route('teacher.question.save') }}"
+                          id="saveForm">
+
+                        @csrf
+
+                        <input type="hidden"
+                               name="exam_cat_id"
+                               id="savedCatId">
+
+                        <input type="hidden"
+                               name="questions"
+                               id="savedQuestions">
+
+                        <input type="hidden"
+                               name="subject_id"
+                               id="savedSubjectId">
+
+                        <input type="hidden"
+                            name="count"
+                            id="savedCount">       
+
+                        <div id="hiddenTopicsBox"></div>
+
+                        <button class="btn btn-success mt-3">
+                            Save To Question Bank
+                        </button>
+
+                    </form>
+
+                </div>
+
+            </div>
+
         </div>
+
     </div>
 </div>
-
 <script>
 
+let selectedTopics = [];
 let generatedQuestions = [];
 
-document.getElementById('generationForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    // Show loading
-    document.getElementById('loadingIndicator').style.display = 'block';
-    document.getElementById('generateBtn').disabled = true;
-    document.getElementById('questionsPreview').style.display = 'none';
-    
-    const formData = new FormData(this);
-    
-    try {
-        const response = await fetch('{{ route("teacher.bank.preview") }}', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Accept': 'application/json'
-            },
-            body: formData
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            generatedQuestions = data.questions;
-            displayQuestions(data.questions);
-            document.getElementById('questionCount').textContent = data.count;
-            document.getElementById('questionsPreview').style.display = 'block';
-            
-            toastr.success(`${data.count} questions generated successfully!`);
-        } else {
-            toastr.error(data.message || 'Failed to generate questions');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        toastr.error('An error occurred. Please try again.');
-    } finally {
-        document.getElementById('loadingIndicator').style.display = 'none';
-        document.getElementById('generateBtn').disabled = false;
-    }
-});
+/* =====================================
+   LOAD SUBJECTS WHEN CLASS CHANGES
+===================================== */
+document.getElementById('classSelect')
+.addEventListener('change', function () {
 
-function displayQuestions(questions) {
-    const container = document.getElementById('questionsList');
-    let html = '<div class="accordion" id="questionsAccordion">';
-    
-    questions.forEach((q, index) => {
-        html += `
-            <div class="accordion-item mb-2">
-                <h2 class="accordion-header">
-                    <button class="accordion-button ${index > 0 ? 'collapsed' : ''}" type="button" 
-                            data-bs-toggle="collapse" data-bs-target="#collapse${index}">
-                        <strong>Question ${index + 1}:</strong> 
-                        <span class="ms-2 text-truncate">${q.question_text.substring(0, 100)}...</span>
-                        <span class="badge bg-info ms-2">${q.question_type}</span>
-                    </button>
-                </h2>
-                <div id="collapse${index}" class="accordion-collapse collapse ${index === 0 ? 'show' : ''}" 
-                     data-bs-parent="#questionsAccordion">
-                    <div class="accordion-body">
-                        <div class="mb-2">
-                            <strong>Question:</strong>
-                            <p class="mt-1">${q.question_text}</p>
-                        </div>`;
-        
-        if (q.question_type === 'objective' && q.options) {
-            html += `<div class="mb-2">
-                        <strong>Options:</strong>
-                        <ul class="list-unstyled mt-1">`;
-            for (let [label, text] of Object.entries(q.options)) {
-                const isCorrect = q.correct_answer === label;
-                html += `<li class="mb-1">
-                            <span class="fw-bold">${label}:</span> ${text}
-                            ${isCorrect ? '<span class="badge bg-success ms-2">Correct</span>' : ''}
-                         </li>`;
-            }
-            html += `</ul></div>`;
-        } else if (q.question_type === 'fill_in_the_gap') {
-            html += `<div class="mb-2">
-                        <strong>Expected Answer:</strong>
-                        <p class="mt-1 text-success fw-bold">${q.expected_answer}</p>
-                     </div>`;
-        }
-        
-        if (q.explanation) {
-            html += `<div class="mb-2">
-                        <strong>Explanation:</strong>
-                        <p class="mt-1 text-muted">${q.explanation}</p>
-                     </div>`;
-        }
-        
-        html += `
-                        <div class="form-check mt-2">
-                            <input class="form-check-input" type="checkbox" 
-                                   id="include${index}" checked>
-                            <label class="form-check-label" for="include${index}">
-                                Include this question
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+    let classId = this.value;
+
+    if (!classId) return;
+
+    fetch("{{ url('/get-subjects') }}/" + classId)
+
+    .then(response => response.json())
+
+    .then(data => {
+
+        let subjectSelect =
+            document.getElementById('subjectSelect');
+
+        subjectSelect.innerHTML =
+            '<option value="">Select Subject</option>';
+
+        data.forEach(sub => {
+
+            subjectSelect.innerHTML += `
+                <option value="${sub.id}">
+                    ${sub.name}
+                </option>
+            `;
+        });
+
+        document.getElementById('topicSelect').innerHTML =
+            '<option value="">Select Topic</option>';
+
+        document.getElementById('selectedTopics').innerHTML =
+            '';
+
+        selectedTopics = [];
+    })
+
+    .catch(error => {
+
+        console.error(error);
+        alert('Failed to load subjects');
     });
-    
-    html += '</div>';
-    container.innerHTML = html;
-}
 
-function regenerate() {
-    document.getElementById('generationForm').dispatchEvent(new Event('submit'));
-}
-
-// Handle save form
-document.getElementById('saveForm').addEventListener('submit', function(e) {
-
-    document.getElementById('subjectId').value =
-        document.querySelector('[name="subject_id"]').value;
-
-    document.getElementById('topicId').value =
-        document.querySelector('[name="topic_id"]').value;
-
-    if (!generatedQuestions || generatedQuestions.length === 0) {
-        e.preventDefault();
-        toastr.error('No questions to save');
-        return;
-    }
-
-    document.getElementById('savedQuestions').value = JSON.stringify(generatedQuestions);
-});
-
-// Toggle options count based on question type
-document.getElementById('questionType').addEventListener('change', function() {
-    const optionsDiv = document.getElementById('optionsCountDiv');
-    if (this.value === 'objective') {
-        optionsDiv.style.display = 'block';
-    } else {
-        optionsDiv.style.display = 'none';
-    }
 });
 
 
-// Load subjects when class changes
-document.getElementById('classSelect').addEventListener('change', function() {
-
-    fetch('/get-subjects/' + this.value)
-        .then(res => res.json())
-        .then(data => {
-            let subjectSelect = document.getElementById('subjectSelect');
-            subjectSelect.innerHTML = '<option>Select Subject</option>';
-
-            data.forEach(sub => {
-                subjectSelect.innerHTML += `<option value="${sub.id}">${sub.name}</option>`;
-            });
-        });
-});
-
-
-// Load topics when subject changes
-document.getElementById('subjectSelect').addEventListener('change', function() {
+/* =====================================
+   LOAD TOPICS WHEN SUBJECT CHANGES
+===================================== */
+document.getElementById('subjectSelect')
+.addEventListener('change', function () {
 
     let subjectId = this.value;
 
     if (!subjectId) return;
 
-    fetch('/get-topics/' + subjectId)
-        .then(res => res.json())
-        .then(data => {
+    fetch("{{ url('/get-topics') }}/" + subjectId)
 
-            console.log('TOPICS:', data); // 👈 DEBUG
+    .then(response => response.json())
 
-            let topicSelect = document.getElementById('topicSelect');
-            topicSelect.innerHTML = '<option value="">Select Topic</option>';
+    .then(data => {
 
-            data.forEach(topic => {
-                topicSelect.innerHTML += `<option value="${topic.id}">${topic.topic}</option>`;
-            });
-        })
-        .catch(err => console.error('Error loading topics:', err));
+        let topicSelect =
+            document.getElementById('topicSelect');
+
+        topicSelect.innerHTML =
+            '<option value="">Select Topic</option>';
+
+        data.forEach(topic => {
+
+            topicSelect.innerHTML += `
+                <option value="${topic.id}">
+                    ${topic.topic}
+                </option>
+            `;
+        });
+
+        document.getElementById('selectedTopics').innerHTML =
+            '';
+
+        selectedTopics = [];
+    })
+
+    .catch(error => {
+
+        console.error(error);
+        alert('Failed to load topics');
+    });
+
 });
+
+
+/* =====================================
+   SELECT MULTIPLE TOPICS
+===================================== */
+document.getElementById('topicSelect')
+.addEventListener('change', function () {
+
+    let topicId = this.value;
+
+    let topicName =
+        this.options[this.selectedIndex].text;
+
+    if (!topicId) return;
+
+    if (selectedTopics.includes(topicId)) {
+
+        this.value = '';
+        return;
+    }
+
+    selectedTopics.push(topicId);
+
+    let box =
+        document.getElementById('selectedTopics');
+
+    box.innerHTML += `
+        <span class="badge bg-primary me-2 mb-2 p-2">
+
+            ${topicName}
+
+            <a href="#"
+               onclick="removeTopic('${topicId}', this)"
+               class="text-white text-decoration-none ms-2 fw-bold">
+               ×
+            </a>
+
+        </span>
+    `;
+
+    this.value = '';
+});
+
+
+/* =====================================
+   REMOVE TOPIC
+===================================== */
+function removeTopic(id, element)
+{
+    selectedTopics =
+        selectedTopics.filter(
+            item => item != id
+        );
+
+    element.parentElement.remove();
+}
+
+
+/* =====================================
+   TOGGLE OPTIONS COUNT
+===================================== */
+document.getElementById('questionType')
+.addEventListener('change', function () {
+
+    let box =
+        document.getElementById('optionsCountDiv');
+
+    box.style.display =
+        this.value === 'objective'
+        ? 'block'
+        : 'none';
+});
+
+
+/* =====================================
+   GENERATE QUESTIONS
+===================================== */
+document.getElementById('generationForm')
+.addEventListener('submit', async function (e) {
+
+    e.preventDefault();
+
+    if (selectedTopics.length === 0) {
+        alert('Please select at least one topic');
+        return;
+    }
+
+    try {
+
+        document.getElementById('loadingIndicator')
+            .style.display = 'block';
+
+        
+
+        const formData = new FormData(this);
+
+formData.set(
+    'count',
+    document.querySelector('[name="count"]').value
+);
+
+        selectedTopics.forEach(id => {
+            formData.append('topic_ids[]', id);
+        });
+
+        const response = await fetch(
+            "{{ route('teacher.bank.preview') }}",
+            {
+                method: "POST",
+                headers: {
+                    "X-CSRF-TOKEN":
+                    document.querySelector(
+                        'input[name="_token"]'
+                    ).value
+                },
+                body: formData
+            }
+        );
+
+        const data = await response.json();
+
+        document.getElementById('loadingIndicator')
+            .style.display = 'none';
+
+        if (!data.success) {
+            alert(data.message);
+            return;
+        }
+
+        generatedQuestions = data.questions;
+
+        document.getElementById('questionCount')
+            .innerText = data.count;
+
+        let html = '';
+
+        data.questions.forEach((q, index) => {
+
+            html += `
+                <div class="border rounded p-3 mb-3">
+
+                    <strong>
+                        Question ${index + 1}
+                    </strong>
+
+                    <p class="mt-2">
+                        ${q.question_text}
+                    </p>
+
+                </div>
+            `;
+        });
+
+        document.getElementById('questionsList')
+            .innerHTML = html;
+
+        document.getElementById('questionsPreview')
+            .style.display = 'block';
+
+    } catch (error) {
+
+        console.error(error);
+
+        document.getElementById('loadingIndicator')
+            .style.display = 'none';
+
+        alert('Failed to generate questions');
+    }
+
+});
+
+
+/* =====================================
+   SAVE QUESTIONS
+===================================== */
+document.getElementById('saveForm')
+.addEventListener('submit', function () {
+
+    document.getElementById('savedCatId').value =
+        document.getElementById('examSelect').value;
+
+    document.getElementById('savedQuestions').value =
+        JSON.stringify(generatedQuestions);
+
+    document.getElementById('savedSubjectId').value =
+        document.getElementById('subjectSelect').value;
+
+        document.getElementById('savedCount').value =
+document.querySelector('[name="count"]').value;
+
+    let hiddenBox =
+        document.getElementById('hiddenTopicsBox');
+
+    hiddenBox.innerHTML = '';
+
+    selectedTopics.forEach(id => {
+
+        hiddenBox.innerHTML += `
+            <input type="hidden"
+                   name="topic_ids[]"
+                   value="${id}">
+        `;
+    });
+
+});
+
+document.getElementById('saveForm')
+.addEventListener('submit', function(){
+
+    document.getElementById('savedCatId').value =
+        document.getElementById('examSelect').value;
+
+    document.getElementById('savedQuestions').value =
+        JSON.stringify(generatedQuestions);
+
+    document.getElementById('savedSubjectId').value =
+        document.getElementById('subjectSelect').value;
+
+    let hiddenBox =
+        document.getElementById('hiddenTopicsBox');
+
+    hiddenBox.innerHTML = '';
+
+    selectedTopics.forEach(id => {
+
+        hiddenBox.innerHTML += `
+            <input type="hidden"
+                   name="topic_ids[]"
+                   value="${id}">
+        `;
+    });
+
+});
+
 </script>
 @endsection

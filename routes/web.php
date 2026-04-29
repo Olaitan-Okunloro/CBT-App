@@ -18,6 +18,7 @@ use App\Http\Controllers\AIQuestionController;
 use App\Http\Controllers\Admin\AdminAIQuestionController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ResultController;
+use App\Http\Controllers\SupportController;
 use App\Http\Controllers\ReferrerController;
 use App\Http\Controllers\BulkPaymentController;
 use Illuminate\Support\Facades\Route;
@@ -92,6 +93,26 @@ Route::middleware(['auth','verified', \App\Http\Middleware\CheckPayment::class])
             ->name('dashboard');
  
     });
+});
+
+// Techical Support
+Route::middleware(['auth'])->group(function () {
+
+    Route::get(
+        '/support',
+        [SupportController::class, 'index']
+    )->name('support.index');
+
+    Route::get(
+        '/support/create',
+        [SupportController::class, 'create']
+    )->name('support.create');
+
+    Route::post(
+        '/support/store',
+        [SupportController::class, 'store']
+    )->name('support.store');
+
 });
 
 
@@ -186,7 +207,32 @@ Route::get('/admin/ai-generator', function() {
 })->name('admin.ai.generator');
 
 Route::post('/ai-save', [AdminAIQuestionController::class, 'save'])->name('admin.ai.save');
-Route::post('/ai-generate', [AdminAIQuestionController::class, 'generate'])->name('admin.ai.generate');    
+Route::post('/ai-generate', [AdminAIQuestionController::class, 'generate'])->name('admin.ai.generate'); 
+
+Route::get(
+    '/admin/announcements',
+    [DashboardController::class, 'announcements']
+)->name('admin.announcements');
+
+Route::post(
+    '/admin/announcements/store',
+    [DashboardController::class, 'storeAnnouncement']
+)->name('admin.announcements.store');
+
+Route::post(
+    '/admin/announcements/{id}/toggle',
+    [DashboardController::class, 'toggleAnnouncement']
+)->name('admin.announcements.toggle');
+
+Route::post(
+    '/admin/announcements/{id}/delete',
+    [DashboardController::class, 'deleteAnnouncement']
+)->name('admin.announcements.delete');
+
+Route::get('/admin/question-bank', [AdminAIQuestionController::class, 'admin'])->name('admin.qb');
+
+Route::post('/admin/question-bank/delete/{id}',[AdminAIQuestionController::class, 'delete'])
+->name('admin.qb.delete');
             
 // admin route ends here   
 
@@ -379,7 +425,18 @@ Route::middleware(['auth'])->group(function () {
         [SchoolController::class, 'deleteTeacher']
     )->name('school.teacher.delete');
 
-});    
+});
+
+Route::get('/school/questions', [SchoolController::class, 'questions'])->name('school.questions');
+
+Route::post('/school/question/approve/{id}', [SchoolController::class, 'approve'])->name('school.question.approve');
+
+Route::post('/school/question/delete/{id}', [SchoolController::class, 'delete'])->name('school.question.delete');
+
+Route::post(
+    '/school/questions/bulk-approve',
+    [SchoolController::class, 'bulkApprove']
+)->name('school.question.bulkApprove');
     
 // school route ends here 
 
@@ -399,6 +456,9 @@ Route::middleware(['auth'])->prefix('teacher')->name('teacher.')->group(function
 // teacher import questions
 Route::post('/teacher/bank-preview', [QuestionBankController::class, 'generatePreview'])
     ->name('teacher.bank.preview');
+
+Route::post('/teacher/save', [QuestionBankController::class, 'save'])
+    ->name('teacher.question.save');    
 
 Route::get('/teacher/ai-generator', function() {
     if (auth()->user()->role !== 'teacher') {
@@ -479,6 +539,40 @@ Route::get('/teacher/exams/create', [\App\Http\Controllers\Teacher\ExamControlle
 // exams upload route    
 Route::post('/teacher/exams/store', [\App\Http\Controllers\Teacher\ExamController::class, 'store'])
     ->name('teacher.exams.store');
+
+Route::get('/teacher/profile', [TeacherController::class, 'profile'])
+    ->name('teacher.profile');
+
+Route::post('/teacher/profile', [TeacherController::class, 'updateProfile'])
+    ->name('teacher.profile.update');   
+    
+Route::get('/teacher/password', [TeacherController::class, 'password'])
+    ->name('teacher.password');
+
+Route::post('/teacher/password', [TeacherController::class, 'updatePassword'])
+    ->name('teacher.password.update');
+    
+Route::get('/teacher/activity', [TeacherController::class, 'activity'])
+    ->name('teacher.activity');  
+    
+Route::get('/teacher/questions', [TeacherController::class, 'myQuestions'])->name('teacher.questions');
+
+Route::post('/teacher/question/delete/{id}', [TeacherController::class, 'delete'])->name('teacher.question.delete');  
+
+Route::get(
+    '/teacher/exam-paper',
+    [App\Http\Controllers\Teacher\QuestionController::class, 'examPaper']
+)->name('teacher.exam.paper');
+
+Route::get(
+    '/teacher/exam-paper/pdf',
+    [App\Http\Controllers\Teacher\QuestionController::class, 'downloadPdf']
+)->name('teacher.exam.paper.pdf');
+
+Route::get(
+'/teacher/answer-sheet',
+[QuestionController::class, 'answerSheet']
+)->name('teacher.answer.sheet');
 
 // teacher's route ends here 
 
@@ -598,8 +692,22 @@ Route::middleware(['auth','paid'])->group(function () {
     Route::get('/exams', [ExamController::class,'index']);
     Route::get('/exam/{id}', [ExamController::class,'start']);
     Route::post('/exam/submit', [ExamController::class,'submit']);
+});  
 
-});    
+Route::get(
+    '/student/practice',
+    [StudentController::class, 'practicePage']
+)->name('student.practice');
+
+Route::post(
+    '/student/practice/start',
+    [StudentController::class, 'startPractice']
+)->name('student.practice.start');
+
+Route::get(
+    '/student/practice/dashboard',
+    [StudentController::class, 'practiceDashboard']
+)->name('student.practice.dashboard');
 
 // student route ends here    
 

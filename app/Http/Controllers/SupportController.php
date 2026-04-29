@@ -3,25 +3,49 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\SupportTicket;
 
 class SupportController extends Controller
 {
     public function index()
     {
-        return view('support.index');
+        $rows = SupportTicket::where(
+                'user_id',
+                auth()->id()
+            )
+            ->latest()
+            ->paginate(10);
+
+        return view(
+            'support.index',
+            compact('rows')
+        );
+    }
+
+    public function create()
+    {
+        return view('support.create');
     }
 
     public function store(Request $request)
     {
-        DB::table('support_tickets')->insert([
+        $request->validate([
+            'subject' => 'required',
+            'message' => 'required'
+        ]);
+
+        SupportTicket::create([
             'user_id' => auth()->id(),
             'subject' => $request->subject,
             'message' => $request->message,
-            'status' => 'open',
-            'created_at' => now(),
-            'updated_at' => now()
+            'status'  => 'open'
         ]);
 
-        return back()->with('success', 'Support request submitted');
+        return redirect()
+            ->route('support.index')
+            ->with(
+                'success',
+                'Ticket submitted successfully'
+            );
     }
 }

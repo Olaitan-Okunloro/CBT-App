@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+
 use App\Models\Exam;
 use App\Models\Question;
 use App\Models\ExamAttempt;
 use App\Models\Answer;
+
+use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 
 class ExamController extends Controller
@@ -152,6 +155,25 @@ class ExamController extends Controller
         $isCorrect = strtolower(trim($question->correct_answer)) 
             == strtolower(trim($request->answer));
 
+        // save attempt
+        DB::table('student_question_attempts')
+        ->updateOrInsert(
+
+            [
+                'student_id'  => auth()->id(),
+                'question_id' => $questionId
+            ],
+
+            [
+                'topic_id'       => $question->topic_id,
+                'is_correct'     => $isCorrect ? 1 : 0,
+                'last_answer'    => $request->answer,
+                'attempts_count' => DB::raw('attempts_count + 1'),
+                'updated_at'     => now(),
+                'attempted_at'   => now()
+            ]
+        );    
+
         // ✅ Save answer
         Answer::updateOrCreate(
             [
@@ -190,6 +212,36 @@ class ExamController extends Controller
             ->distinct('question_id')
             ->where('is_correct', 1)
             ->count('question_id');
+
+        $exam = \App\Models\Exam::find(
+            $attempt->exam_id
+        );
+
+        $student = auth()->user()->studentDetail;
+
+        if (
+            $exam &&
+            $exam->exam_cat_id == 2 &&
+            $student
+        ) {
+
+            \App\Models\ResultScore::updateOrCreate(
+
+                [
+                    'student_details_id' => $student->id,
+                    'subject_id'         => $attempt->subject_id,
+                    'term'               => $exam->term,
+                    'session'            => $exam->session
+                ],
+
+                [
+                    'school_id'   => $student->school_id,
+                    'class_id'    => $student->class_id,
+                    'exam_score'  => $score,
+                    'created_by'  => auth()->id()
+                ]
+            );
+        }    
 
         $attempt->update([
             'score' => $score,

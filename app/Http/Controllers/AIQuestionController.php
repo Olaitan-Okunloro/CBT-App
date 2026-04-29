@@ -6,22 +6,53 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+
+use App\Models\ExamCategory;
 use App\Models\Question;
 use App\Models\Subject;
 use App\Models\ClassLevel;
+use App\Models\SchoolClass;
 use App\Models\TeacherDetail;
 use App\Models\TeacherOption;
+
+use Illuminate\Support\Facades\DB;
 
 class AIQuestionController extends Controller
 {
     /**
      * Show AI question generator form
      */
+    
+
     public function index()
     {
         $subjects = Subject::all();
-        $classes = ClassLevel::all();
-        return view('teacher.questions.ai-generator', compact('subjects','classes'));
+
+        $categories = ExamCategory::all();
+
+        $teacher = DB::table('teacher_details')
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (!$teacher) {
+            return back()->with(
+                'error',
+                'Teacher profile not found'
+            );
+        }
+
+        $classes = SchoolClass::with('classLevel')
+            ->where('school_id', $teacher->school_id)
+            ->get()
+            ->map(fn($row) => (object) [
+                'id'   => $row->class_level_id,
+                'name' => $row->classLevel->name ?? 'N/A'
+            ]);
+
+        return view(
+            'teacher.questions.ai-generator',
+            compact('subjects', 'classes', 'categories')
+        );
     }
 
     /**

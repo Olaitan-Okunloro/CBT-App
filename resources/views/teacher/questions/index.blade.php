@@ -1,31 +1,25 @@
 @extends('layouts.app')
 
-@section('title', 'My Support Tickets')
+@section('title', 'My Questions')
 
 @section('content')
 <div class="container">
 
-    <div class="card shadow-sm border-0">
+    <div class="card shadow-sm">
 
         <div class="card-header bg-primary text-white">
-            My Support Tickets
+            My Questions
         </div>
 
         <div class="card-body">
-
-            <a href="{{ route('support.create') }}"
-               class="btn btn-primary mb-3">
-                Create Ticket
-            </a>
 
             <table class="table table-hover">
 
                 <thead>
                     <tr>
-                        <th>Subject</th>
-                        <th>Message</th>
+                        <th>Question</th>
                         <th>Status</th>
-                        <th>Date</th>
+                        <th>Action</th>
                     </tr>
                 </thead>
 
@@ -36,23 +30,29 @@
                         <tr>
 
                             <td>
-                                {{ $row->subject }}
-                            </td>
-
-                            <td>
-                                {{ $row->message }}
+                                {{ Str::limit($row->question_text, 80) }}
                             </td>
 
                             <td>
 
-                                <span class="badge bg-{{ $row->status == 'open' ? 'warning text-dark' : 'success' }}">
+                                <span class="badge bg-{{ $row->status == 'approved' ? 'success' : 'warning' }}">
                                     {{ ucfirst($row->status) }}
                                 </span>
 
                             </td>
 
                             <td>
-                                {{ $row->created_at->format('d M Y') }}
+
+                                <form method="POST"
+                                      action="{{ route('teacher.question.delete', $row->id) }}">
+                                    @csrf
+
+                                    <button class="btn btn-sm btn-danger"
+                                        onclick="return confirm('Delete question?')">
+                                        Delete
+                                    </button>
+                                </form>
+
                             </td>
 
                         </tr>

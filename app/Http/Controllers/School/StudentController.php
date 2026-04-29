@@ -6,21 +6,39 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\StudentDetail;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use App\Models\ClassLevel;
 use App\Models\TeacherDetail;
-use Illuminate\Support\Facades\Mail;
 use App\Mail\UserCreatedMail;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\StudentsImport;
 use App\Exports\StudentsExport;
 use App\Models\ExamAttempt;
 
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+
 class StudentController extends Controller
 {
     public function dashboard()
     {
+        $announcements = \App\Models\Announcement::where(
+            'status',
+            'active'
+        )
+        ->where(function ($q) {
+
+            $q->where('audience', 'all')
+              ->orWhere(
+                  'audience',
+                  auth()->user()->role
+              );
+        })
+        ->latest()
+        ->take(5)
+        ->get();
+        
         $user = auth()->user();
 
         $attempts = ExamAttempt::where('user_id', $user->id)->get();
@@ -39,7 +57,8 @@ class StudentController extends Controller
             'averageScore',
             'highestScore',
             'attempts',
-            'subjectStats'
+            'subjectStats',
+            'announcements'
         ));
     }
     
@@ -226,6 +245,157 @@ class StudentController extends Controller
             ->paginate(10);
 
         return view('student.activity-log', compact('logs'));
+    }
+
+    public function practicePage()
+    {
+        $subjects = \App\Models\Subject::all();
+        $topics   = \App\Models\Topic::all();
+
+        return view(
+            'student.practice.index',
+            compact('subjects', 'topics')
+        );
+    }
+
+    public function startPractice(Request $request)
+    {
+        $studentId = auth()->id();
+
+        $query = \App\Models\Question::where(
+            'topic_id',
+            $request->topic_id
+        );
+
+        if ($request->mode == '20') {
+
+            $query->inRandomOrder()
+                ->limit(20);
+
+        } elseif ($request->mode == '50') {
+
+            $query->inRandomOrder()
+                ->limit(50);
+
+        } elseif ($request->mode == 'remaining') {
+
+            $attempted = DB::table(
+                'student_question_attempts'
+            )
+            ->where('student_id', $studentId)
+            ->pluck('question_id');
+
+            $query->whereNotIn('id', $attempted);
+
+        } elseif ($request->mode == 'wrong') {
+
+            $wrong = DB::table(
+                'student_question_attempts'
+            )
+            ->where('student_id', $studentId)
+            ->where('is_correct', 0)
+            ->pluck('question_id');
+
+            $query->whereIn('id', $wrong);
+
+        }
+
+        $rows = $query->get();
+
+        session([
+            'practice_questions' => $rows
+        ]);
+
+        return redirect()->route(
+            'student.practice.exam'
+        );
+    }
+
+    public function practiceDashboard()
+    {
+        $studentId = auth()->id();
+
+        $totalAttempted = DB::table(
+            'student_question_attempts'
+        )
+        ->where('student_id', $studentId)
+        ->count();
+
+        $correct = DB::table(
+            'student_question_attempts'
+        )
+        ->where('student_id', $studentId)
+        ->where('is_correct', 1)
+        ->count();
+
+        $wrong = $totalAttempted - $correct;
+
+        $topics = DB::table(
+            'student_question_attempts as s'
+        )
+        ->join('topics as t', 't.id', '=', 's.topic_id')
+        ->select(
+            't.topic',
+            DB::raw('COUNT(*) as total'),
+            DB::raw('SUM(is_correct) as correct')
+        )
+        ->where('student_id', $studentId)
+        ->groupBy('t.topic')
+        ->get();
+
+        $chart = DB::table(
+            'student_question_attempts'
+        )
+        ->selectRaw(
+            'DATE(attempted_at) as day,
+            COUNT(*) as total'
+        )
+        ->where('student_id', $studentId)
+        ->groupBy('day')
+        ->orderBy('day')
+        ->get();
+
+        $streak = DB::table(
+            'student_question_attempts'
+        )
+        ->selectRaw(
+            'DATE(attempted_at) as day'
+        )
+        ->where('student_id', $studentId)
+        ->groupBy('day')
+        ->orderByDesc('day')
+        ->pluck('day')
+        ->toArray();
+
+        $dailyStreak = 0;
+        $date = now()->toDateString();
+
+        foreach ($streak as $day) {
+
+            if ($day == $date) {
+
+                $dailyStreak++;
+                $date = date(
+                    'Y-m-d',
+                    strtotime($date . ' -1 day')
+                );
+
+            } else {
+                break;
+            }
+        }
+
+        return view(
+            'student.practice.dashboard',
+            compact(
+                'totalAttempted',
+                'correct',
+                'wrong',
+                'topics',
+                'chart',
+                'dailyStreak'
+            )
+        );
     }
 
 }

@@ -19,7 +19,8 @@ class ResultScore extends Model
         'exam_score',
         'total_score',
         'grade',
-        'remark'
+        'remark',
+        'created_by'
     ];
 
     public function subject()

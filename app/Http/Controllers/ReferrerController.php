@@ -16,6 +16,23 @@ class ReferrerController extends Controller
 {
     public function dashboard()
     {
+
+        $announcements = \App\Models\Announcement::where(
+            'status',
+            'active'
+        )
+        ->where(function ($q) {
+
+            $q->where('audience', 'all')
+              ->orWhere(
+                  'audience',
+                  auth()->user()->role
+              );
+        })
+        ->latest()
+        ->take(5)
+        ->get();
+
         $user = auth()->user();
 
         $referrer_code = $user->referral_code;
@@ -55,7 +72,8 @@ class ReferrerController extends Controller
             'studentRefs',
             'schoolRefs',
             'totalRefs',
-            'referrer_code'
+            'referrer_code',
+            'announcements'
         ));
     }
 

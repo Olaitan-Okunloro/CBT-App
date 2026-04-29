@@ -9,6 +9,7 @@ use App\Models\Question;
 use App\Models\StudentDetail;
 use App\Models\TeacherDetail;
 use App\Models\ExamAttempt;
+use App\Models\Announcement;
 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,24 @@ class DashboardController extends Controller
      */
     public function index()
     {
-        $user = auth()->user();
+
+        $announcements = \App\Models\Announcement::where(
+            'status',
+            'active'
+                )
+                ->where(function ($q) {
+
+                    $q->where('audience', 'all')
+                    ->orWhere(
+                        'audience',
+                        auth()->user()->role
+                    );
+
+                })
+                ->latest()
+                ->take(5)
+                ->get();
+            $user = auth()->user();
         
         // Redirect based on role
         switch($user->role) {
@@ -120,19 +138,6 @@ class DashboardController extends Controller
         ]);
 
     }
-
-    // public function analytics()
-    // {
-    //     $totalStudents = User::where('role','student')->count();
-    //     $totalAttempts = ExamAttempt::count();
-    //     $averageScore = ExamAttempt::avg('score');
-
-    //     return view('dashboard.leaderboard', compact(
-    //         'totalStudents',
-    //         'totalAttempts',
-    //         'averageScore'
-    //     ));
-    // }
 
     public function withdrawals()
     {
@@ -416,39 +421,39 @@ class DashboardController extends Controller
         return back()->with('success', 'Settings updated successfully');
     }
 
-    public function announcements()
-    {
-        $rows = DB::table('announcements')
-            ->latest()
-            ->paginate(10);
+    // public function announcements()
+    // {
+    //     $rows = DB::table('announcements')
+    //         ->latest()
+    //         ->paginate(10);
 
-        return view('admin.announcements', compact('rows'));
-    }
+    //     return view('admin.announcements', compact('rows'));
+    // }
 
-    public function storeAnnouncement(Request $request)
-    {
-        $request->validate([
-            'title' => 'required',
-            'message' => 'required'
-        ]);
+    // public function storeAnnouncement(Request $request)
+    // {
+    //     $request->validate([
+    //         'title' => 'required',
+    //         'message' => 'required'
+    //     ]);
 
-        DB::table('announcements')->insert([
-            'title' => $request->title,
-            'message' => $request->message,
-            'audience' => $request->audience,
-            'created_at' => now(),
-            'updated_at' => now()
-        ]);
+    //     DB::table('announcements')->insert([
+    //         'title' => $request->title,
+    //         'message' => $request->message,
+    //         'audience' => $request->audience,
+    //         'created_at' => now(),
+    //         'updated_at' => now()
+    //     ]);
 
-        DB::table('activity_logs')->insert([
-            'user_id' => auth()->id(),
-            'activity' => 'Posted announcement',
-            'created_at' => now(),
-            'updated_at' => now()
-        ]);
+    //     DB::table('activity_logs')->insert([
+    //         'user_id' => auth()->id(),
+    //         'activity' => 'Posted announcement',
+    //         'created_at' => now(),
+    //         'updated_at' => now()
+    //     ]);
 
-        return back()->with('success', 'Announcement posted');
-    }
+    //     return back()->with('success', 'Announcement posted');
+    // }
 
     public function support()
     {
@@ -492,5 +497,122 @@ class DashboardController extends Controller
         ]);
 
         return back()->with('success', 'Ticket deleted');
+    }
+
+
+    public function announcements()
+    {
+        $rows = \App\Models\Announcement::latest()
+            ->paginate(10);
+
+        return view(
+            'admin.announcements',
+            compact('rows')
+        );
+    }
+
+    public function storeAnnouncement(Request $request)
+    {
+        $request->validate([
+            'title'    => 'required',
+            'audience' => 'required',
+            'message'  => 'required'
+        ]);
+
+        \App\Models\Announcement::create([
+            'title'    => $request->title,
+            'audience' => $request->audience,
+            'message'  => $request->message,
+            'status'   => 'active'
+        ]);
+
+        return back()->with(
+            'success',
+            'Announcement posted'
+        );
+    }
+
+    public function toggleAnnouncement($id)
+    {
+        $row = \App\Models\Announcement::findOrFail($id);
+
+        $row->status =
+            $row->status == 'active'
+            ? 'inactive'
+            : 'active';
+
+        $row->save();
+
+        return back()->with(
+            'success',
+            'Announcement updated'
+        );
+    }
+
+    public function deleteAnnouncement($id)
+    {
+        \App\Models\Announcement::findOrFail($id)
+            ->delete();
+
+        return back()->with(
+            'success',
+            'Announcement deleted'
+        );
+    }
+
+    public function questionBanks(Request $request)
+    {
+        $query = \App\Models\QuestionBank::with([
+            'subject',
+            'topic',
+            'classLevel'
+        ]);
+
+        if ($request->class_id) {
+            $query->where(
+                'class_level_id',
+                $request->class_id
+            );
+        }
+
+        if ($request->subject_id) {
+            $query->where(
+                'subject_id',
+                $request->subject_id
+            );
+        }
+
+        if ($request->search) {
+            $query->where(
+                'question_text',
+                'like',
+                '%' . $request->search . '%'
+            );
+        }
+
+        $rows = $query->latest()->paginate(20);
+
+        $classes = \App\Models\ClassLevel::all();
+        $subjects = \App\Models\Subject::all();
+
+        return view(
+            'admin.question-banks.index',
+            compact(
+                'rows',
+                'classes',
+                'subjects'
+            )
+        );
+    }
+
+    public function deleteQuestionBank($id)
+    {
+        \App\Models\QuestionBank::findOrFail($id)
+            ->delete();
+
+        return back()->with(
+            'success',
+            'Question deleted'
+        );
     }
 }

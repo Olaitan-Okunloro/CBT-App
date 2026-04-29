@@ -237,32 +237,60 @@
                     </div>
 
 
-                    <div class="row mt-5">
-                        <div class="col-md-4 text-center">
+                    <div class="row mt-5 text-center">
 
-                            <div style="border-top:1px solid green; padding-top:10px;">
-                                Class Teacher Signature
-                            </div>
+                    <div class="col-md-4">
 
-                        </div>
+                        @if(isset($teacher) && $teacher->signature)
 
-                        <div class="col-md-4 text-center">
+                            <img src="{{ asset('storage/signatures/' . $teacher->signature) }}"
+                                height="70">
 
-                            <div style="border-top:1px solid green; padding-top:10px;">
-                                Principal/HM Signature
-                            </div>
+                        @endif
 
-                        </div>
+                        <hr>
 
-                        <div class="col-md-4 text-center">
-
-                            <div style="border-top:1px solid green; padding-top:10px;">
-                                School Stamp
-                            </div>
-
-                        </div>
+                        <p class="mb-0 fw-bold">
+                            Class Teacher
+                        </p>
 
                     </div>
+
+                    <div class="col-md-4">
+
+                        @if(isset($school) && $school->principal_signature)
+
+                            <img src="{{ asset('storage/signatures/' . $school->principal_signature) }}"
+                                height="70">
+
+                        @endif
+
+                        <hr>
+
+                        <p class="mb-0 fw-bold">
+                            Principal
+                        </p>
+
+                    </div>
+
+                    <div class="col-md-4">
+
+                        @if(isset($school) && $school->stamp_logo)
+
+                            <img src="{{ asset('storage/stamps/' . $school->stamp_logo) }}"
+                                height="80">
+
+                        @endif
+
+                        <hr>
+
+                        <p class="mb-0 fw-bold">
+                            Official Stamp
+                        </p>
+
+                    </div>
+
+                </div>
 
                     <div class="row mt-4">
 

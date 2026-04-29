@@ -10,6 +10,8 @@ use App\Models\ClassLevel;
 use App\Models\TeacherDetail;
 use App\Models\Option;
 
+use Barryvdh\DomPDF\Facade\Pdf;
+
 class QuestionController extends Controller
 {
     
@@ -71,7 +73,8 @@ class QuestionController extends Controller
                     'question_type' => $questionType,
                     'question_text' => $q['question_text'],
                     'created_by' => auth()->id(),
-                    'source' => 'internal'
+                    'source' => 'internal',
+                    'status' => 'pending'
                 ];
                 
                 // Handle different question types
@@ -152,6 +155,104 @@ class QuestionController extends Controller
         }
         
         return back()->with('success', $message);
+    }
+
+    public function examPaper()
+    {
+        $teacher = auth()->user()->teacherDetail;
+
+        $school = \App\Models\School::find(
+            $teacher->school_id
+        );
+
+        $rows = \App\Models\Question::with([
+                'options',
+                'subject',
+                'classLevel'
+            ])
+            ->where('created_by', auth()->id())
+            ->where('status', 'approved')
+            ->where('exam_cat_id', 1)
+            ->latest()
+            ->get();
+
+        $subject =
+            $rows->first()->subject->name
+            ?? 'Subject';
+
+        $class =
+            $rows->first()->classLevel->name
+            ?? 'Class';
+
+        return view(
+            'teacher.questions.paper',
+            compact(
+                'rows',
+                'school',
+                'teacher',
+                'subject',
+                'class'
+            )
+        );
+    }
+
+    public function downloadPdf()
+    {
+        $teacher = auth()->user()->teacherDetail;
+
+        $school = \App\Models\School::find(
+            $teacher->school_id
+        );
+
+        $rows = \App\Models\Question::with([
+                'options',
+                'subject',
+                'classLevel'
+            ])
+            ->where('created_by', auth()->id())
+            ->where('status', 'approved')
+            ->where('exam_cat_id', 1)
+            ->latest()
+            ->get();
+
+        $subject = $rows->first()->subject->name ?? 'Subject';
+        $class   = $rows->first()->classLevel->name ?? 'Class';
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
+            'teacher.questions.paper-pdf',
+            compact(
+                'rows',
+                'school',
+                'teacher',
+                'subject',
+                'class'
+            )
+        );
+
+        return $pdf->download('exam-paper.pdf');
+    }
+
+    public function answerSheet()
+    {
+        $teacher = auth()->user()->teacherDetail;
+
+        $school = \App\Models\School::find(
+            $teacher->school_id
+        );
+
+        $rows = \App\Models\Question::where(
+                'created_by',
+                auth()->id()
+            )
+            ->where('status', 'approved')
+            ->where('exam_cat_id', 1)
+            ->latest()
+            ->get();
+
+        return view(
+            'teacher.questions.answer-sheet',
+            compact('rows', 'school')
+        );
     }
 
 }
