@@ -39,7 +39,7 @@
                                                 <input type="text" 
                                                        name="exams[0][title]" 
                                                        class="form-control" 
-                                                       placeholder="e.g., First Term Exam Or Practice English Test"
+                                                       placeholder="e.g., First Term Examination"
                                                        required>
                                             </div>
                                         </div>
@@ -90,20 +90,84 @@
                                         </div>
 
                                         <div class="col-md-6 mb-3">
-                                            <label class="form-label fw-bold">Total Questions <span class="text-danger">*</span></label>
+                                            <label class="form-label fw-bold">Term <span class="text-danger">*</span></label>
                                             <div class="input-group">
-                                                <span class="input-group-text bg-secondary text-white">
-                                                    <i class="fas fa-list-ol"></i>
+                                                <span class="input-group-text bg-dark text-white">
+                                                    <i class="fas fa-calendar-alt"></i>
                                                 </span>
-                                                <input type="number" 
-                                                       name="exams[0][total_questions]" 
-                                                       class="form-control" 
-                                                       placeholder="e.g., 50"
-                                                       min="1"
+                                                <select name="exams[0][term]" class="form-select" required>
+                                                    <option value="">Select Term</option>
+                                                    <option value="1st Term">1st Term</option>
+                                                    <option value="2nd Term">2nd Term</option>
+                                                    <option value="3rd Term">3rd Term</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold">Session <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-dark text-white">
+                                                    <i class="fas fa-calendar-week"></i>
+                                                </span>
+                                                <input type="text"
+                                                       name="exams[0][session]"
+                                                       class="form-control"
+                                                       placeholder="2025/2026"
                                                        required>
                                             </div>
                                         </div>
 
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold">Score Type <span class="text-danger">*</span></label>
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-dark text-white">
+                                                    <i class="fas fa-chart-line"></i>
+                                                </span>
+                                                <select name="exams[0][score_type]" class="form-select" required>
+                                                    <option value="">Select Type</option>
+                                                    <option value="first_ca">First CA Test</option>
+                                                    <option value="second_ca">Second CA Test</option>
+                                                    <option value="exam">Examination</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold">Mark Per Question</label>
+                                            <div class="input-group">
+                                                <span class="input-group-text bg-dark text-white">
+                                                    <i class="fas fa-star"></i>
+                                                </span>
+                                                <input type="number"
+                                                       name="exams[0][mark_per_question]"
+                                                       class="form-control"
+                                                       min="1"
+                                                       value="1">
+                                            </div>
+                                        </div>
+
+                                        <div class="col-md-6 mb-3">
+                                            <label class="form-label fw-bold">
+                                            Number of Questions
+                                            <span class="text-danger">*</span>
+                                            </label>
+
+                                            <div class="input-group">
+
+                                            <span class="input-group-text bg-secondary text-white">
+                                            <i class="fas fa-list-ol"></i>
+                                            </span>
+
+                                            <input type="number"
+                                                name="exams[0][number_of_questions]"
+                                                class="form-control"
+                                                placeholder="e.g. 50"
+                                                min="1"
+                                                required>
+
+                                            </div>
+                                        </div>
                                         <div class="col-md-6 mb-3">
                                             <label class="form-label fw-bold">Duration (minutes) <span class="text-danger">*</span></label>
                                             <div class="input-group">
@@ -111,11 +175,11 @@
                                                     <i class="fas fa-clock"></i>
                                                 </span>
                                                 <input type="number" 
-                                                       name="exams[0][duration]" 
-                                                       class="form-control" 
-                                                       placeholder="e.g., 60"
-                                                       min="1"
-                                                       required>
+                                                    name="exams[0][duration]" 
+                                                    class="form-control" 
+                                                    placeholder="e.g., 60"
+                                                    min="1"
+                                                    required>
                                             </div>
                                         </div>
                                     </div>
@@ -139,53 +203,9 @@
     </div>
 </div>
 
-<style>
-    .border-left-primary {
-        border-left: 4px solid #6f42c1;
-    }
-    .exam-block {
-        transition: all 0.3s ease;
-    }
-    .exam-block:hover {
-        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-        transform: translateY(-2px);
-    }
-    .remove-exam {
-        transition: all 0.2s ease;
-    }
-    .remove-exam:hover {
-        transform: scale(1.05);
-    }
-    .input-group-text {
-        font-weight: bold;
-        min-width: 40px;
-        justify-content: center;
-    }
-    input:focus, select:focus {
-        box-shadow: 0 0 0 0.2rem rgba(111,66,193,0.25);
-        border-color: #6f42c1;
-    }
-    .fade-in {
-        animation: fadeIn 0.3s ease-in;
-    }
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-</style>
-
 <script>
 let examCount = 1;
 
-/**
- * Add new exam
- */
 function addExam() {
     let index = examCount;
 
@@ -210,7 +230,7 @@ function addExam() {
                         <input type="text" 
                                name="exams[${index}][title]" 
                                class="form-control" 
-                               placeholder="e.g., First Term Exam Or Practice English Test"
+                               placeholder="e.g., First Term Examination"
                                required>
                     </div>
                 </div>
@@ -261,19 +281,80 @@ function addExam() {
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label class="form-label fw-bold">Total Questions <span class="text-danger">*</span></label>
+                    <label class="form-label fw-bold">Term <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark text-white">
+                            <i class="fas fa-calendar-alt"></i>
+                        </span>
+                        <select name="exams[${index}][term]" class="form-select" required>
+                            <option value="">Select Term</option>
+                            <option value="1st Term">1st Term</option>
+                            <option value="2nd Term">2nd Term</option>
+                            <option value="3rd Term">3rd Term</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Session <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark text-white">
+                            <i class="fas fa-calendar-week"></i>
+                        </span>
+                        <input type="text"
+                               name="exams[${index}][session]"
+                               class="form-control"
+                               placeholder="2025/2026"
+                               required>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Score Type <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark text-white">
+                            <i class="fas fa-chart-line"></i>
+                        </span>
+                        <select name="exams[${index}][score_type]" class="form-select" required>
+                            <option value="">Select Type</option>
+                            <option value="first_ca">First CA Test</option>
+                            <option value="second_ca">Second CA Test</option>
+                            <option value="exam">Examination</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Mark Per Question</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark text-white">
+                            <i class="fas fa-star"></i>
+                        </span>
+                        <input type="number"
+                               name="exams[${index}][mark_per_question]"
+                               class="form-control"
+                               min="1"
+                               value="1">
+                    </div>
+                </div>
+
+                <!-- NEW FIELD: Number of Questions -->
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">Number of Questions <span class="text-danger">*</span></label>
                     <div class="input-group">
                         <span class="input-group-text bg-secondary text-white">
                             <i class="fas fa-list-ol"></i>
                         </span>
-                        <input type="number" 
-                               name="exams[${index}][total_questions]" 
-                               class="form-control" 
-                               placeholder="e.g., 50"
+                        <input type="number"
+                               name="exams[${index}][number_of_questions]"
+                               class="form-control"
+                               placeholder="e.g. 50"
                                min="1"
                                required>
                     </div>
                 </div>
+
+                
 
                 <div class="col-md-6 mb-3">
                     <label class="form-label fw-bold">Duration (minutes) <span class="text-danger">*</span></label>
@@ -298,7 +379,6 @@ function addExam() {
     
     examCount++;
     
-    // Show remove button for first exam if more than one exists
     if (examCount > 1) {
         const firstExam = document.querySelector('.exam-block');
         if (firstExam) {
@@ -310,9 +390,6 @@ function addExam() {
     }
 }
 
-/**
- * Remove exam
- */
 function removeExam(button) {
     const examBlock = button.closest('.exam-block');
     
@@ -333,23 +410,17 @@ function removeExam(button) {
     });
 }
 
-/**
- * Renumber exams after removal
- */
 function renumberExams() {
     const exams = document.querySelectorAll('.exam-block');
     
     exams.forEach((exam, idx) => {
-        // Update data-index
         exam.setAttribute('data-index', idx);
         
-        // Update header number
         const header = exam.querySelector('.card-header h5');
         if (header) {
             header.innerHTML = `<i class="fas fa-file-alt me-2"></i>Exam ${idx + 1}`;
         }
         
-        // Update all input names
         const inputs = exam.querySelectorAll('input, select');
         inputs.forEach(input => {
             const name = input.getAttribute('name');
@@ -362,7 +433,6 @@ function renumberExams() {
     
     examCount = exams.length;
     
-    // Hide remove button for first exam if only one remains
     if (examCount === 1) {
         const firstExam = document.querySelector('.exam-block');
         if (firstExam) {
@@ -374,9 +444,6 @@ function renumberExams() {
     }
 }
 
-/**
- * Form submission with SweetAlert confirmation
- */
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('examsForm');
     
@@ -384,7 +451,6 @@ document.addEventListener('DOMContentLoaded', function() {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            // Check if form is valid
             if (!this.checkValidity()) {
                 this.reportValidity();
                 return false;
@@ -400,13 +466,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 confirmButtonText: 'Yes, save them!'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Disable submit button
                     const submitBtn = form.querySelector('button[type="submit"]');
                     if (submitBtn) {
                         submitBtn.disabled = true;
                         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
                     }
-                    // Submit the form
                     form.submit();
                 }
             });

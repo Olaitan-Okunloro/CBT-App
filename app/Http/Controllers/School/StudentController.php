@@ -84,8 +84,8 @@ class StudentController extends Controller
         $schoolId = auth()->user()->schoolDetail->school_id;
 
         // Create user account
-        $password = Str::random(8);
-        // $password = 'password123';
+        // $password = Str::random(8);
+        $password = 'password123';
 
         $user = User::create([
             'name' => $request->name,

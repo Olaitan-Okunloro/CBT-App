@@ -9,7 +9,9 @@ use App\Models\Exam;
 use App\Models\Question;
 use App\Models\ExamAttempt;
 use App\Models\Answer;
+use App\Models\User;
 
+use Maatwebsite\Excel\Facades\Empty;
 use Illuminate\Support\Facades\DB;
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -26,8 +28,31 @@ class ExamController extends Controller
 
         $exam = Exam::findOrFail($examId);
 
-        $query = Question::where('subject_id', $exam->subject_id);
+        $studentId = $user->id;
 
+        // get correct answers
+        $correct = DB::table('student_question_attempts')
+            ->where('student_id', $studentId)
+            ->where('topic_id', $request->topic_id)
+            ->where('is_correct', 1)
+            ->pluck('question_id');
+
+        // 🚨 DO NOT use ->get() here
+        $query = Question::where('subject_id', $exam->subject_id)
+            ->whereNotIn('id', $correct);
+
+        // 🔁 If everything is done
+        if ($query->count() == 0) {
+
+            DB::table('student_question_attempts')
+                ->where('student_id', $studentId)
+                ->where('topic_id', $request->topic_id)
+                ->delete();
+
+            $query = Question::where('subject_id', $exam->subject_id);
+        }
+
+        // role filtering (still query builder)
         if ($user->role === 'student') {
 
             if ($user->studentDetail?->school_id) {
@@ -42,13 +67,12 @@ class ExamController extends Controller
             }
         }
 
-        // Split questions into types
         $total = $exam->total_questions;
 
-        // Try to get all questions first
+        // ✅ NOW fetch data
         $questions = $query->inRandomOrder()->take($total)->get();
 
-        // If not enough, fallback safely
+        // fallback if not enough
         if ($questions->count() < $total) {
             $questions = $query->inRandomOrder()->get();
         }
@@ -57,31 +81,23 @@ class ExamController extends Controller
             return back()->with('error', 'No questions available for this exam.');
         }
 
-        // Create attempt
+        // create attempt
         $attempt = ExamAttempt::create([
-            'user_id' => $user->id,
+            'user_id' => $studentId,
             'subject_id' => $exam->subject_id,
             'exam_id' => $exam->id,
             'total' => $questions->count(),
             'started_at' => now()
         ]);
 
-        // ✅ CORRECT SESSION STORAGE
+        // session
         $request->session()->put('exam_questions', $questions->pluck('id')->toArray());
         $request->session()->put('attempt_id', $attempt->id);
         $request->session()->put('current_index', 0);
         $request->session()->put('exam_end_time', now()->addMinutes($exam->duration));
 
-        // if ($exam->category->name === 'real_exam') {
-        //     session([
-        //         'no_back' => true,
-        //         'no_retry' => true
-        //     ]);
-        // }
-
         return redirect()->route('student.exam.question');
     }
-
     // available exams
     public function available()
     {
@@ -213,9 +229,58 @@ class ExamController extends Controller
             ->where('is_correct', 1)
             ->count('question_id');
 
-        $exam = \App\Models\Exam::find(
-            $attempt->exam_id
-        );
+        $exam = \App\Models\Exam::find($attempt->exam_id);
+
+        $student = auth()->user()->studentDetail;
+
+        if ($exam && $student) {
+
+            $result = \App\Models\ResultScore::firstOrCreate(
+
+                [
+                    'school_id'           => $student->school_id,
+                    'student_details_id'  => $student->id,
+                    'class_id'            => $student->class_id,
+                    'subject_id'          => $exam->subject_id,
+                    'session'             => $exam->session,
+                    'term'                => $exam->term,
+                ],
+
+                [
+                    'created_by' => auth()->id()
+                ]
+            );
+
+            if ($exam->score_type == 'first_ca') {
+
+                $result->first_ca_score = $score;
+
+            } elseif ($exam->score_type == 'second_ca') {
+
+                $result->second_ca_score = $score;
+
+            } elseif ($exam->score_type == 'exam') {
+
+                $result->exam_score = $score;
+            }
+
+            $result->total_score =
+                ($result->first_ca_score ?? 0) +
+                ($result->second_ca_score ?? 0) +
+                ($result->exam_score ?? 0);
+                
+                // total score
+                if ($result->total_score >= 70) $grade = 'A';
+                elseif ($result->total_score >= 60) $grade = 'B';
+                elseif ($result->total_score >= 50) $grade = 'C';
+                elseif ($result->total_score >= 45) $grade = 'D';
+                elseif ($result->total_score >= 40) $grade = 'E';
+                else $grade = 'F';
+
+                $result->grade = $grade;
+
+            $result->save();
+        }
 
         $student = auth()->user()->studentDetail;
 
@@ -301,4 +366,83 @@ class ExamController extends Controller
 
         return view('student.exam.review', compact('attempt'));
     }
+
+    public function toggleSave($id)
+    {
+        $studentId = auth()->id();
+
+        $exists = DB::table('saved_questions')
+            ->where('student_id', $studentId)
+            ->where('question_id', $id)
+            ->first();
+
+        if ($exists) {
+
+            DB::table('saved_questions')
+                ->where('id', $exists->id)
+                ->delete();
+
+            return response()->json([
+                'status' => 'removed'
+            ]);
+
+        } else {
+
+            DB::table('saved_questions')->insert([
+                'student_id' => $studentId,
+                'question_id' => $id
+            ]);
+
+            return response()->json([
+                'status' => 'saved'
+            ]);
+        }
+    }
+
+    public function savedQuestions()
+    {
+        $rows = DB::table('saved_questions as s')
+            ->join('questions as q', 'q.id', '=', 's.question_id')
+            ->where('s.student_id', auth()->id())
+            ->select('q.*')
+            ->get();
+
+        return view('student.archive.index', compact('rows'));
+    }
+
+    public function weakTopics()
+    {
+        $studentId = auth()->id();
+
+        $topics = DB::table('student_question_attempts as s')
+            ->join('topics as t', 't.id', '=', 's.topic_id')
+            ->select(
+                't.id',
+                't.topic',
+                DB::raw('COUNT(*) as total'),
+                DB::raw('SUM(s.is_correct) as correct')
+            )
+            ->where('s.student_id', $studentId)
+            ->groupBy('t.id', 't.topic')
+            ->get()
+            ->map(function ($row) {
+
+                $accuracy = $row->total > 0
+                    ? ($row->correct / $row->total) * 100
+                    : 0;
+
+                $row->accuracy = round($accuracy, 2);
+
+                return $row;
+            });
+
+        // 🎯 weak topics (< 50%)
+        $weak = $topics->where('accuracy', '<', 50);
+
+        return view(
+            'student.analytics.weak-topics',
+            compact('topics', 'weak')
+        );
+    }
+
 }

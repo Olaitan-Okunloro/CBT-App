@@ -709,6 +709,26 @@ Route::get(
     [StudentController::class, 'practiceDashboard']
 )->name('student.practice.dashboard');
 
+Route::get(
+    '/student/result/pdf',
+    [ResultController::class, 'downloadPdf']
+)->name('student.result.pdf');
+
+Route::get(
+    '/student/save-question/{id}',
+    [ExamController::class, 'toggleSave']
+)->name('student.save.question');
+
+Route::get(
+    '/student/saved-questions',
+    [ExamController::class, 'savedQuestions']
+)->name('student.saved.questions');
+
+Route::get(
+    '/student/weak-topics',
+    [ExamController::class, 'weakTopics']
+)->name('student.weak.topics');
+
 // student route ends here    
 
 

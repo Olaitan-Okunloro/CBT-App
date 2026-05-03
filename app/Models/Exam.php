@@ -12,9 +12,15 @@ class Exam extends Model
         'subject_id',
         'class_id',
         'school_id',
+        'created_by',
         'exam_cat_id',
+        'term',
+        'session',
+        'score_type',
         'duration',
-        'total_questions'
+        'total_questions',
+        'total_marks',
+        'mark_per_question'
     ];
     
     public function subject()

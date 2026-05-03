@@ -260,6 +260,18 @@
                                     </a>
                                 </li>
                                 <li>
+                                    <a class="nav-link {{ request()->routeIs('student.saved.questions') ? 'active' : '' }}" 
+                                    href="{{ route('student.saved.questions') }}">
+                                        <i class="fas fa-box-archive me-1"></i>Archive
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="nav-link {{ request()->routeIs('student.weak.topics') ? 'active' : '' }}" 
+                                    href="{{ route('student.weak.topics') }}">
+                                        <i class="fas fa-box-archive me-1"></i>Weak Topic Detector
+                                    </a>
+                                </li>
+                                <li>
                                     <a class="nav-link {{ request()->routeIs('student.leaderboard') ? 'active' : '' }}" 
                                     href="{{ route('student.leaderboard') }}">
                                         <i class="fas fa-chart-bar me-1"></i>Leaders
@@ -274,7 +286,7 @@
                                 @endisset
                             </ul>
                         </li>
-                    
+
                         <li class="nav-item">
                             <a class="nav-link {{ request()->routeIs('student.analytics') ? 'active' : '' }}" 
                                href="{{ route('student.analytics') }}">
@@ -300,6 +312,25 @@
                                 </li>
                             </ul>
                         </li>
+
+                        @if(!auth()->user()->isExternal())
+
+                            {{-- Email subscription --}}
+                            <a href="{{ route('student.email.activate') }}">Subscribe</a>
+
+                            {{-- QR --}}
+                            <a href="{{ route('student.qrcode') }}">QR</a>
+
+                            {{-- Leaderboard --}}
+                            <a href="{{ route('student.leaderboard') }}">Leaderboard</a>
+
+                            {{-- Payment --}}
+                            <a href="{{ route('student.school.fees') }}">Payment</a>
+                            <a class="dropdown-item" href="{{ route('student.fees.history') }}">
+                                <i class="fas fa-clock me-2"></i>Payment History
+                            </a>
+
+                        @endif
                         @endif
 
                         <!-- Teacher Links -->
@@ -433,16 +464,6 @@
                                 </li>
                             </ul>
                         </li>
-
-                        <!-- <li class="nav-item dropdown">
-                            <a class="nav-link dropdown-toggle " 
-                               href="#" id="resultsDropdown" role="button" data-bs-toggle="dropdown">
-                                <i class="fas fa-chart-line me-1"></i>Results
-                            </a>
-                            <ul class="dropdown-menu">
-                                
-                            </ul>
-                        </li> -->
                         @endif
 
                         <!-- In your app.blade.php navbar section, ensure school links are present -->

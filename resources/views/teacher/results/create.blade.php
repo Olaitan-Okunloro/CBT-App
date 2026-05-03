@@ -37,8 +37,9 @@
                             <div class="col-md-4">
                                 <label class="fw-bold">Upload Type</label>
                                 <select name="upload_type" id="uploadType" class="form-select" required>
-                                    <option value="test">Test Scores</option>
-                                    <option value="exam">Exam Scores</option>
+                                    <option value="first_ca">First CA Test</option>
+                                    <option value="second_ca">Second CA Test</option>
+                                    <option value="exam">Exam</option>
                                 </select>
                             </div>
                         </div>
@@ -100,7 +101,7 @@
                                         </div>
 
                                         <div class="col-md-12 mb-3">
-                                            <label class="fw-bold score-label">Test Score</label>
+                                            <label class="fw-bold score-label">Add Score</label>
                                             <input type="number"
                                                    name="rows[0][score]"
                                                    class="form-control"
@@ -198,7 +199,7 @@
         let type = this.value;
 
         document.querySelectorAll('.score-label').forEach(label => {
-            label.innerHTML = type === 'test' ? 'Test Score' : 'Exam Score';
+            label.innerHTML = type === 'test' ? 'Add Score' : 'Add Score';
         });
     };
 

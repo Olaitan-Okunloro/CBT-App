@@ -87,4 +87,10 @@ class User extends Authenticatable
             }
         });
     }
+
+    // App\Models\User.php
+    public function isExternal()
+    {
+        return $this->exam_type === 'GENERAL';
+    }
 }

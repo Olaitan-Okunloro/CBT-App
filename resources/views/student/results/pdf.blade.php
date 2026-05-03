@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+
+    <style>
+        body {
+            font-family: DejaVu Sans;
+            font-size: 12px;
+            margin: 25px;
+            color: #000;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .logo {
+            height: 70px;
+            margin-bottom: 5px;
+        }
+
+        .school-name {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .sub {
+            font-size: 12px;
+        }
+
+        .meta {
+            width: 100%;
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+
+        .meta td {
+            padding: 3px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .table th, .table td {
+            border: 1px solid #000;
+            padding: 5px;
+            text-align: center;
+        }
+
+        .section {
+            margin-top: 12px;
+        }
+
+        .box {
+            border: 1px solid #000;
+            padding: 8px;
+        }
+
+        .watermark {
+            position: fixed;
+            top: 40%;
+            left: 20%;
+            font-size: 70px;
+            color: #ddd;
+            transform: rotate(-30deg);
+            opacity: 0.2;
+        }
+
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 10px;
+        }
+
+        .signature {
+            margin-top: 40px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="watermark">
+        CONFIDENTIAL
+    </div>
+
+    {{-- HEADER --}}
+    <div class="header">
+        @if(!empty($school->logo))
+            <img src="{{ public_path('storage/logo/'.$school->logo) }}"
+                 class="logo">
+        @endif
+
+        <div class="school-name">
+            {{ $school->name }}
+        </div>
+
+        <div class="sub">
+            {{ $school->address }}
+        </div>
+
+        <div class="sub">
+            STUDENT REPORT CARD
+        </div>
+    </div>
+
+    {{-- META --}}
+    <table class="meta">
+        <tr>
+            <td>
+                <strong>Name:</strong> {{ $student->user->name }}
+            </td>
+            <td align="right">
+                <strong>Reg No:</strong> {{ $student->registration_number }}
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <strong>Class:</strong> {{ $student->class->name ?? '' }}
+            </td>
+            <td align="right">
+                <strong>Term:</strong> {{ $term }}
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <strong>Session:</strong> {{ request('session') }}
+            </td>
+            <td align="right">
+                <strong>Date:</strong> {{ date('d M Y') }}
+            </td>
+        </tr>
+    </table>
+
+    {{-- RESULT TABLE --}}
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Subject</th>
+                <th>1st CA</th>
+                <th>2nd CA</th>
+                <th>Exam</th>
+                <th>Total</th>
+                <th>Grade</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach($results as $row)
+                <tr>
+                    <td>{{ $row->subject->name }}</td>
+                    <td>{{ $row->first_ca_score }}</td>
+                    <td>{{ $row->second_ca_score }}</td>
+                    <td>{{ $row->exam_score }}</td>
+                    <td><strong>{{ $row->total_score }}</strong></td>
+                    <td>{{ $row->grade }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+
+    {{-- SUMMARY --}}
+    <div class="section box">
+        <strong>Total Score:</strong> {{ $grandTotal }} <br>
+        <strong>Average:</strong> {{ $average }}
+    </div>
+
+    {{-- ATTENDANCE --}}
+    <div class="section box">
+        <strong>Attendance</strong><br>
+        Present: {{ $presentDays }} <br>
+        Late: {{ $lateDays }} <br>
+        Absent: {{ $absentDays }} <br>
+        Rate: {{ $attendanceRate }}%
+    </div>
+
+    {{-- FEES --}}
+    <div class="section box">
+        <strong>School Fees</strong><br>
+        Total: {{ number_format($totalFee) }} <br>
+        Paid: {{ number_format($paid) }} <br>
+        Balance: {{ number_format($balance) }}
+    </div>
+
+    {{-- SIGNATURE --}}
+    <div class="signature">
+        <table width="100%">
+            <tr>
+                <td>
+                    _____________________<br>
+                    Class Teacher
+                </td>
+
+                <td align="right">
+                    _____________________<br>
+                    Principal
+                </td>
+            </tr>
+        犀
+    </div>
+
+    {{-- FOOTER --}}
+    <div class="footer">
+        Generated by School CBT System
+    </div>
+</body>
+</html>

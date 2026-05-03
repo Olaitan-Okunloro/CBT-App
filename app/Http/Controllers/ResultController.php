@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\StudentDetail;
 use App\Models\Subject;
 use App\Models\ResultScore;
+
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\DB;
 
 class ResultController extends Controller
@@ -28,57 +30,74 @@ class ResultController extends Controller
     {
         foreach ($request->rows as $row) {
 
-            $existing = \App\Models\ResultScore::where('student_details_id', $row['student_id'])
+            $result = \App\Models\ResultScore::where('student_details_id', $row['student_id'])
                 ->where('subject_id', $row['subject_id'])
                 ->where('session', $request->session)
                 ->where('term', $request->term)
                 ->first();
 
-            if (!$existing) {
+            if (!$result) {
 
-                $existing = new \App\Models\ResultScore();
-                $existing->school_id = auth()->user()->school_id ?? 1;
-                $existing->student_details_id = $row['student_id'];
-                $existing->class_id = $row['class_id'];
-                $existing->subject_id = $row['subject_id'];
-                $existing->session = $request->session;
-                $existing->term = $request->term;
-                $existing->test_score = 0;
-                $existing->exam_score = 0;
+                $result = new \App\Models\ResultScore();
+
+                $result->school_id = auth()->user()->school_id ?? 1;
+                $result->student_details_id = $row['student_id'];
+                $result->class_id = $row['class_id'];
+                $result->subject_id = $row['subject_id'];
+                $result->created_by = auth()->user()->id;
+                $result->session = $request->session;
+                $result->term = $request->term;
+
+                // initialize scores
+                $result->first_ca_score = 0;
+                $result->second_ca_score = 0;
+                $result->exam_score = 0;
             }
 
-            if ($request->upload_type == 'test') {
-                $existing->test_score = $row['score'];
-            } else {
-                $existing->exam_score = $row['score'];
+            // 🎯 Flexible CA logic
+            if ($request->upload_type == 'first_ca') {
+
+                $result->first_ca_score = $row['score'];
+
+            } elseif ($request->upload_type == 'second_ca') {
+
+                $result->second_ca_score = $row['score'];
+
+            } elseif ($request->upload_type == 'exam') {
+
+                $result->exam_score = $row['score'];
             }
 
-            $existing->total_score =
-                $existing->test_score + $existing->exam_score;
+            // 🎯 Total score
+            $result->total_score =
+                ($result->first_ca_score ?? 0) +
+                ($result->second_ca_score ?? 0) +
+                ($result->exam_score ?? 0);
 
-            $total = $existing->total_score;
+            // 🎯 Grade system
+            $total = $result->total_score;
 
             if ($total >= 70) {
-                $existing->grade = 'A';
-                $existing->remark = 'Excellent';
+                $result->grade = 'A';
+                $result->remark = 'Excellent';
             } elseif ($total >= 60) {
-                $existing->grade = 'B';
-                $existing->remark = 'Very Good';
+                $result->grade = 'B';
+                $result->remark = 'Very Good';
             } elseif ($total >= 50) {
-                $existing->grade = 'C';
-                $existing->remark = 'Good';
+                $result->grade = 'C';
+                $result->remark = 'Good';
             } elseif ($total >= 45) {
-                $existing->grade = 'D';
-                $existing->remark = 'Fair';
+                $result->grade = 'D';
+                $result->remark = 'Fair';
             } elseif ($total >= 40) {
-                $existing->grade = 'E';
-                $existing->remark = 'Pass';
+                $result->grade = 'E';
+                $result->remark = 'Pass';
             } else {
-                $existing->grade = 'F';
-                $existing->remark = 'Fail';
-            }    
+                $result->grade = 'F';
+                $result->remark = 'Fail';
+            }
 
-            $existing->save();
+            $result->save();
         }
 
         return back()->with('success', 'Scores uploaded successfully');
@@ -268,6 +287,111 @@ class ResultController extends Controller
                 'absentDays',
                 'attendanceRate'
             ));
+    }
+
+    public function downloadPdf(Request $request)
+    {
+        $student = StudentDetail::where(
+            'registration_number',
+            $request->registration_number
+        )->first();
+
+        if (!$student) {
+            return back()->with('error', 'Student not found');
+        }
+
+        $school = \App\Models\School::find($student->school_id);
+
+        $results = ResultScore::with('subject')
+            ->where('student_details_id', $student->id)
+            ->where('session', $request->session)
+            ->where('term', $request->term)
+            ->where('status', 'released')
+            ->get();
+
+        if ($results->isEmpty()) {
+            return back()->with('error', 'No result found');
+        }
+
+        $term = $results->first()->term;
+
+        // ✅ TOTAL + AVERAGE
+        $grandTotal = $results->sum('total_score');
+        $subjectCount = $results->count();
+        $average = $subjectCount > 0
+            ? round($grandTotal / $subjectCount, 2)
+            : 0;
+
+        // 🟢 ATTENDANCE
+        $attendanceRows = \App\Models\Attendance::where(
+            'student_details_id',
+            $student->id
+        )->whereMonth('date', now()->month)->get();
+
+        $presentDays = $attendanceRows->count();
+
+        $lateDays = $attendanceRows
+            ->where('status', 'late')
+            ->count();
+
+        $schoolDays = 60;
+
+        $absentDays = max($schoolDays - $presentDays, 0);
+
+        $attendanceRate = $schoolDays > 0
+            ? round(($presentDays / $schoolDays) * 100, 2)
+            : 0;
+
+        // 🟢 FEES
+        $fee = DB::table('school_fees')
+            ->where('school_id', $student->school_id)
+            ->where('class_id', $student->class_id)
+            ->latest()
+            ->first();
+
+        $paid = DB::table('school_fee_payments')
+            ->where('student_id', $student->user_id)
+            ->where('status', 'confirmed')
+            ->sum('amount');
+
+        $totalFee = 0;
+
+        if ($fee) {
+            $totalFee =
+                ($fee->tuition ?? 0) +
+                ($fee->uniforms ?? 0) +
+                ($fee->sports_wear ?? 0) +
+                ($fee->books ?? 0) +
+                ($fee->exam_fee ?? 0) +
+                ($fee->pta_levy ?? 0) +
+                ($fee->other_fee ?? 0);
+        }
+
+        $balance = $totalFee - $paid;
+
+        $pdf = Pdf::loadView(
+            'student.results.pdf',
+            compact(
+                'student',
+                'school',
+                'results',
+                'term',
+                'grandTotal',
+                'average',
+
+                // ✅ ADD THESE
+                'presentDays',
+                'lateDays',
+                'absentDays',
+                'attendanceRate',
+
+                'totalFee',
+                'paid',
+                'balance'
+            )
+        );
+
+        return $pdf->download('result.pdf');
     }
 
 }
