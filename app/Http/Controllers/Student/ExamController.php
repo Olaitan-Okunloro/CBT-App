@@ -38,8 +38,45 @@ class ExamController extends Controller
             ->pluck('question_id');
 
         // 🚨 DO NOT use ->get() here
-        $query = Question::where('subject_id', $exam->subject_id)
-            ->whereNotIn('id', $correct);
+        // if ($user->exam_type === 'EXTERNAL') {
+
+        //     $query = \App\Models\QuestionBank::where(
+        //         'class_level_id',
+        //         $user->studentDetail->class_id ?? $user->class_id
+        //     )->where(
+        //         'subject_id',
+        //         $exam->subject_id
+        //     );
+
+        // } else {
+
+        //     $query = \App\Models\Question::where(
+        //         'subject_id',
+        //         $exam->subject_id
+        //     );
+        // }
+
+        $student = auth()->user();
+
+        $classId = $student->class_id ?? $student->studentDetail?->class_id;
+
+        // 🔥 FORCE ONLY question bank for external
+        if ($student->exam_type === 'EXTERNAL') {
+
+            $query = \App\Models\QuestionBank::where('class_level_id', $classId);
+
+            // optional: filter by subject if exam has subject
+            if (!empty($exam->subject_id)) {
+                $query->where('subject_id', $exam->subject_id);
+            }
+
+        } else {
+
+            $query = \App\Models\Question::where('subject_id', $exam->subject_id);
+        }
+
+        // ✅ THEN apply this AFTER
+        $query->whereNotIn('id', $correct);
 
         // 🔁 If everything is done
         if ($query->count() == 0) {
@@ -444,5 +481,175 @@ class ExamController extends Controller
             compact('topics', 'weak')
         );
     }
+
+    public function startPractice(Request $request)
+    {
+        $user = auth()->user();
+        $studentDetail = $user->studentDetail;
+
+        // $isInternal = $studentDetail->isInternal();
+
+        $isInternal = !is_null($studentDetail->school_id);
+
+        
+        $classId = $studentDetail->class_id;
+        $subjectId = $request->subject_id;
+        $topicId = $request->topic_id;
+        
+        // 🎯 Check if student is internal or external
+        $isInternal = $studentDetail->school_id ? true : false; // Has school_id means internal
+        
+        // 🎯 Get previously answered correct questions
+        $correct = DB::table('student_question_attempts')
+            ->where('student_id', $user->id)
+            ->where('topic_id', $topicId)
+            ->where('is_correct', 1)
+            ->pluck('question_id');
+        
+        // 🎯 Fetch questions based on student type
+        if ($isInternal) {
+            // Internal students: fetch from questions table
+            $query = \App\Models\Question::where('class_level_id', $classId)
+                ->where('subject_id', $subjectId)
+                ->where('topic_id', $topicId)
+                ->whereNotIn('id', $correct);
+        } else {
+            // External students: fetch from question_banks table
+            $query = \App\Models\QuestionBank::where('class_level_id', $classId)
+                ->where('subject_id', $subjectId)
+                ->where('topic_id', $topicId)
+                ->whereNotIn('id', $correct);
+        }
+        
+        // 🔁 Reset if completed all questions
+        if ($query->count() == 0) {
+            
+            DB::table('student_question_attempts')
+                ->where('student_id', $user->id)
+                ->where('topic_id', $topicId)
+                ->delete();
+            
+            if ($isInternal) {
+                $query = \App\Models\Question::where('class_level_id', $classId)
+                    ->where('subject_id', $subjectId)
+                    ->where('topic_id', $topicId);
+            } else {
+                $query = \App\Models\QuestionBank::where('class_level_id', $classId)
+                    ->where('subject_id', $subjectId)
+                    ->where('topic_id', $topicId);
+            }
+        }
+        
+        // 🎯 20 questions per session
+        $questions = $query->inRandomOrder()->take(20)->get();
+        
+        if ($questions->isEmpty()) {
+            return back()->with('error', 'No questions found for this topic.');
+        }
+        
+        // Create pseudo attempt
+        $attempt = \App\Models\ExamAttempt::create([
+            'user_id' => $user->id,
+            'subject_id' => $subjectId,
+            'exam_id' => null,
+            'total' => $questions->count(),
+            'started_at' => now()
+        ]);
+        
+        session([
+            'exam_questions' => $questions->pluck('id')->toArray(),
+            'attempt_id' => $attempt->id,
+            'current_index' => 0,
+            'exam_end_time' => now()->addMinutes($questions->count()),
+            'is_internal' => $isInternal // Store to know which table to use during answering
+        ]);
+        
+        return redirect()->route('student.exam.question');
+    }
+
+    public function showQuestion()
+    {
+        $user = auth()->user();
+        
+        // Get questions from session
+        $questionIds = session('practice_questions');
+        $currentIndex = session('current_index', 0);
+        
+        // Check if questions exist
+        if (!$questionIds || !is_array($questionIds)) {
+            return redirect()->route('student.practice.dashboard')
+                ->with('error', 'No questions found. Please start a new practice session.');
+        }
+        
+        $totalQuestions = count($questionIds);
+        
+        if ($currentIndex >= $totalQuestions) {
+            return redirect()->route('student.external.practice.complete');
+        }
+        
+        // Get the current question from EXTERNAL question_banks table
+        $questionId = $questionIds[$currentIndex];
+        $question = QuestionBank::with('options')->find($questionId);
+        
+        if (!$question) {
+            return redirect()->route('student.practice.dashboard')
+                ->with('error', 'Question not found.');
+        }
+        
+        return view('student.practice.practice-question', compact('question', 'currentIndex', 'totalQuestions'));
+    }
+
+
+    public function externalPracticeDashboard()
+    {
+        $subjects = \App\Models\Subject::all(); // ✅ fetch all
+
+        return view('student.practice', compact('subjects'));
+    }
+
+    public function submitAnswer(Request $request)
+    {
+        $user = auth()->user();
+        
+        $request->validate([
+            'question_id' => 'required|exists:question_banks,id',
+            'answer' => 'required|string',
+            'topic_id' => 'required'
+        ]);
+        
+        $question = QuestionBank::find($request->question_id);
+        $isCorrect = ($question->correct_answer === $request->answer);
+        
+        // Record attempt
+        DB::table('student_question_attempts')->insert([
+            'student_id' => $user->id,
+            'question_id' => $request->question_id,
+            'topic_id' => $request->topic_id,
+            'selected_answer' => $request->answer,
+            'is_correct' => $isCorrect,
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+        
+        // Update session index
+        $currentIndex = session('current_index', 0);
+        session(['current_index' => $currentIndex + 1]);
+        
+        return response()->json([
+            'success' => true,
+            'is_correct' => $isCorrect,
+            'correct_answer' => $question->correct_answer
+        ]);
+    }
+
+    public function complete()
+    {
+        // Clear session data
+        session()->forget(['practice_questions', 'current_index']);
+        
+        return view('student.external.practice-complete');
+    }
+
+
 
 }

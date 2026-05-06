@@ -24,5 +24,10 @@ class Subject extends Model
     {
         return $this->hasMany(ResultScore::class);
     }
+
+    public function questionBanks()
+    {
+        return $this->hasMany(\App\Models\QuestionBank::class, 'subject_id');
+    }
 }
 

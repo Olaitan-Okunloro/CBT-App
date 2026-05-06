@@ -97,6 +97,11 @@ $saved = DB::table('saved_questions')
 
     Take Another Exam
 
+</a><br><br>
+
+
+<a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
+    Back to the Dashboard
 </a>
 
 {{-- JS --}}

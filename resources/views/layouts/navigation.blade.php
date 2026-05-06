@@ -2,7 +2,7 @@
 <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
     <div class="container">
         <a class="navbar-brand" href="{{ route('dashboard') }}">
-            <i class="fas fa-graduation-cap me-2"></i>CBT Pro
+            <i class="fas fa-graduation-cap me-2"></i>AcademiCore
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
             <span class="navbar-toggler-icon"></span>

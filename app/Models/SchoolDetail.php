@@ -22,4 +22,16 @@ class SchoolDetail extends Model
     {
         return $this->belongsTo(School::class);
     }
+
+    // app/Models/StudentDetail.php
+
+    public function isInternal()
+    {
+        return !is_null($this->school_id);
+    }
+
+    public function isExternal()
+    {
+        return is_null($this->school_id);
+    }
 }

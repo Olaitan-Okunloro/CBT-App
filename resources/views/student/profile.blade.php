@@ -4,52 +4,74 @@
 
 @section('content')
 <div class="container">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-sm mt-4">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">
-                        <i class="fas fa-user-circle me-2"></i>
-                        My Profile
-                    </h4>
+    <div class="card shadow-sm">
+        <div class="card-header bg-success text-white">
+            Student Profile
+        </div>
+
+        <div class="text-center mb-4">
+
+            @if($user->profile_photo)
+
+                <img src="{{ asset('storage/profile/' . $user->profile_photo) }}"
+                    class="rounded-circle shadow"
+                    width="120"
+                    height="120"
+                    style="object-fit: cover;">
+
+            @else
+
+                <i class="fas fa-user-circle text-secondary"
+                style="font-size: 120px;"></i>
+
+            @endif
+
+        </div>
+
+        <p class="text-muted text-center">
+            Update your profile photo
+        </p>
+
+        <div class="card-body">
+            <form method="POST" enctype="multipart/form-data" action="{{ route('student.profile.update') }}" >
+                @csrf
+
+                <div class="mb-3">
+                    <label>Full Name</label>
+                    <input type="text"
+                           name="name"
+                           class="form-control"
+                           value="{{ $user->name }}">
                 </div>
 
-                <div class="card-body text-center">
-                    <img src="{{ asset('images/default-user.png') }}"
-                         width="120"
-                         class="rounded-circle mb-3 border">
-
-                    <h4>{{ $student->user->name ?? 'N/A' }}</h4>
-
-                    <p class="text-muted">
-                        {{ $student->registration_number }}
-                    </p>
-
-                    <hr>
-
-                    <div class="row text-start">
-                        <div class="col-md-6 mb-3">
-                            <strong>Email:</strong><br>
-                            {{ $student->user->email ?? 'N/A' }}
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <strong>Class:</strong><br>
-                            {{ $student->class->name ?? 'N/A' }}
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <strong>Guardian Email:</strong><br>
-                            {{ $student->guardian_email ?? 'N/A' }}
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <strong>Status:</strong><br>
-                            Active Student
-                        </div>
-                    </div>
+                <div class="mb-3">
+                    <label>Email</label>
+                    <input type="email"
+                           name="email"
+                           class="form-control"
+                           value="{{ $user->email }}">
                 </div>
-            </div>
+
+                <!-- <div class="mb-3">
+                    <label>Referral Code</label>
+                    <input type="text"
+                           class="form-control"
+                           value="{{ $user->referral_code }}"
+                           readonly>
+                </div> -->
+
+                <div class="mb-3">
+                    <label>Profile Photo</label>
+
+                    <input type="file"
+                        name="profile_photo"
+                        class="form-control">
+                </div>
+
+                <button class="btn btn-success">
+                    Update Profile
+                </button>
+            </form>
         </div>
     </div>
 </div>

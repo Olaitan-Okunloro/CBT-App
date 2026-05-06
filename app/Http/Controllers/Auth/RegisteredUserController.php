@@ -59,6 +59,7 @@ class RegisteredUserController extends Controller
             'name'      => $request->name,
             'email'     => $request->email,
             'phone'     => $request->phone,
+            'exam_type' => 'EXTERNAL',
             'password'  => Hash::make($request->password),
             'role'      => $role,
             'is_active' => false,

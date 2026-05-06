@@ -21,4 +21,9 @@ class Topic extends Model
     {
         return $this->belongsTo(ClassLevel::class);
     }
+
+    public function questionBanks()
+    {
+        return $this->hasMany(\App\Models\QuestionBank::class, 'topic_id');
+    }
 }

@@ -28,24 +28,34 @@ class QuestionBank extends Model
         );
     }
 
-    public function subject()
-    {
-        return $this->belongsTo(\App\Models\Subject::class);
-    }
+    // public function subject()
+    // {
+    //     return $this->belongsTo(\App\Models\Subject::class);
+    // }
 
     public function classLevel()
     {
         return $this->belongsTo(\App\Models\ClassLevel::class);
     }
 
-    public function topic()
-    {
-        return $this->belongsTo(\App\Models\Topic::class);
-    }
+    // public function topic()
+    // {
+    //     return $this->belongsTo(\App\Models\Topic::class);
+    // }
 
 
     public function options()
     {
         return $this->hasMany(\App\Models\Option::class,'question_id', 'id');
+    }
+
+    public function subject()
+    {
+        return $this->belongsTo(\App\Models\Subject::class, 'subject_id');
+    }
+
+    public function topic()
+    {
+        return $this->belongsTo(\App\Models\Topic::class, 'topic_id');
     }
 }

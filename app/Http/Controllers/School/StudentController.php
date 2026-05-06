@@ -200,13 +200,55 @@ class StudentController extends Controller
         return view('student.results.student-result', compact('student', 'results'));
     }
 
+    // public function profile()
+    // {
+    //     $student = \App\Models\StudentDetail::with('user')
+    //         ->where('user_id', auth()->id())
+    //         ->first();
+
+    //     return view('student.profile', compact('student'));
+    // }
+
     public function profile()
     {
-        $student = \App\Models\StudentDetail::with('user')
-            ->where('user_id', auth()->id())
-            ->first();
+        $user = auth()->user();
 
-        return view('student.profile', compact('student'));
+        return view('student.profile', compact('user'));
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $request->validate([
+            'name'  => 'required',
+            'email' => 'required|email'
+        ]);
+
+        $user = auth()->user();
+
+        $user->name  = $request->name;
+        $user->email = $request->email;
+
+        if ($request->hasFile('profile_photo')) {
+
+            $file = $request->file('profile_photo');
+
+            $filename = time() . '.' . $file->getClientOriginalExtension();
+
+            $file->move(public_path('storage/profile'), $filename);
+
+            $user->profile_photo = $filename;
+        }
+
+        $user->save();
+
+        DB::table('activity_logs')->insert([
+            'user_id'    => $user->id,
+            'activity'   => 'Updated profile',
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        return back()->with('success', 'Profile updated successfully');
     }
 
     public function changePassword()
@@ -396,6 +438,35 @@ class StudentController extends Controller
                 'dailyStreak'
             )
         );
+    }
+
+    public function showClassForm()
+    {
+        $classes = \App\Models\ClassLevel::all();
+
+        return view('student.external.select-class', compact('classes'));
+    }
+
+    public function saveClass(Request $request)
+    {
+        $request->validate([
+            'class_id' => 'required|exists:classes,id'
+        ]);
+
+        $user = auth()->user();
+
+        // option 1: save on users table
+        // $user->class_id = $request->class_id;
+        // $user->save();
+
+        // option 2 (if you prefer student_details)
+        if ($user->studentDetail) {
+            $user->studentDetail->class_id = $request->class_id;
+            $user->studentDetail->save();
+        }
+
+        return redirect()->route('dashboard')
+            ->with('success', 'Class selected successfully.');
     }
 
 }

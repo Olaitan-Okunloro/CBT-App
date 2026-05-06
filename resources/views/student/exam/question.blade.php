@@ -4,63 +4,92 @@
 
 <style>
     .exam-container {
-        color: white;
+        color: #000; /* safer than white */
     }
 </style>
 
 <div class="container exam-container">
 
-    <h5>Question {{ $index + 1 }}</h5>
+    {{-- 🚨 SAFETY CHECK --}}
+    @if(!$question)
+        <div class="alert alert-danger">
+            Question not found. Redirecting...
+        </div>
 
-    <div class="alert alert-danger">
-        Time Left: <span id="timer"></span>
-    </div>
+        <script>
+            setTimeout(function () {
+                window.location.href = "{{ route('student.exam.submit.auto') }}";
+            }, 1500);
+        </script>
+    @else
 
-    <form method="POST" action="{{ route('student.exam.answer') }}">
-        @csrf
+        <h5>Question {{ $index + 1 }}</h5>
 
-        <p>{{ $question->question_text }}</p>
+        <div class="alert alert-danger">
+            Time Left: <span id="timer"></span>
+        </div>
 
-        {{-- OBJECTIVE --}}
-        @if($question->question_type === 'objective')
+        <form method="POST" action="{{ route('student.exam.answer') }}">
+            @csrf
 
-            @foreach($question->teacher_options as $option)
-            <div>
-                <label>
-                    <input type="radio" name="answer" value="{{ $option->option_label }}" >
-                    {{ $option->option_label }}. {{ $option->option_text }}
-                </label>
-            </div>
-            @endforeach
+            {{-- QUESTION --}}
+            <p>{{ $question->question_text }}</p>
 
-        {{-- FILL IN THE GAP --}}
-        @elseif($question->question_type === 'fill_in_the_gap')
-            <input type="text" name="answer" class="form-control mt-3" placeholder="Enter your answer">
-        @endif
+            {{-- OBJECTIVE --}}
+            @if($question->question_type === 'objective')
 
-        <button type="submit" class="btn btn-primary mt-3">Next</button>
-</button>
+                @foreach($question->teacher_options as $option)
+                    <div class="form-check">
+                        <input class="form-check-input"
+                               type="radio"
+                               name="answer"
+                               value="{{ $option->option_label }}"
+                               id="opt{{ $loop->index }}">
+
+                        <label class="form-check-label" for="opt{{ $loop->index }}">
+                            {{ $option->option_label }}. {{ $option->option_text }}
+                        </label>
+                    </div>
+                @endforeach
+
+            {{-- FILL IN THE GAP --}}
+            @elseif($question->question_type === 'fill_in_the_gap')
+
+                <input type="text"
+                       name="answer"
+                       class="form-control mt-3"
+                       placeholder="Enter your answer">
+
+            @endif
+
+            <button type="submit" class="btn btn-primary mt-3">
+                Next →
+            </button>
+
+        </form>
+
+    @endif
 
 </div>
 
+{{-- TIMER --}}
 <script>
     let endTime = new Date("{{ \Carbon\Carbon::parse(session('exam_end_time'))->toIso8601String() }}");
-    let redirected = false; // ✅ prevent multiple redirects
+    let redirected = false;
 
-    if("{{ session('no_back') }}"){
+    if ("{{ session('no_back') }}") {
         history.pushState(null, null, location.href);
         window.onpopstate = function () {
             history.go(1);
         };
     }
 
-    function updateTimer(){
+    function updateTimer() {
         let now = new Date();
-        let diff = Math.floor((endTime - now)/1000);
+        let diff = Math.floor((endTime - now) / 1000);
 
-        if(diff <= 0 && !redirected){
+        if (diff <= 0 && !redirected) {
             redirected = true;
-
             window.location.href = "{{ route('student.exam.submit.auto') }}";
             return;
         }
@@ -68,6 +97,7 @@
         document.getElementById('timer').innerText = diff + " sec";
     }
 
+    updateTimer(); // run immediately
     setInterval(updateTimer, 1000);
 </script>
 

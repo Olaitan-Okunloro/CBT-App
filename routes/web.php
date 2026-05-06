@@ -21,6 +21,9 @@ use App\Http\Controllers\ResultController;
 use App\Http\Controllers\SupportController;
 use App\Http\Controllers\ReferrerController;
 use App\Http\Controllers\BulkPaymentController;
+use App\Http\Controllers\Student\External\PracticeController;
+
+
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -597,21 +600,21 @@ Route::get('/exam/start/{examId}', [ExamController::class, 'start'])
     ->name('student.exam.start');
     
 // available exams route
-Route::get('/student/exams', [ExamController::class, 'available'])
+Route::get('/student/student/exams', [ExamController::class, 'available'])
     ->name('student.exams.available');
     
 // exam questions route
-Route::get('/exam/question', [ExamController::class, 'question'])
+Route::get('/student/exam/question', [ExamController::class, 'question'])
     ->name('student.exam.question');
 
-Route::post('/exam/answer', [ExamController::class, 'answer'])
+Route::post('/student/exam/answer', [ExamController::class, 'answer'])
     ->name('student.exam.answer');
 
-Route::get('/exam/result/{id}', [\App\Http\Controllers\Student\ExamController::class, 'result'])
+Route::get('/student/exam/result/{id}', [\App\Http\Controllers\Student\ExamController::class, 'result'])
     ->name('student.exam.result');      
 
 // auto submition route
-Route::get('/exam/submit-auto', [ExamController::class, 'autoSubmit'])
+Route::get('/student/exam/submit-auto', [ExamController::class, 'autoSubmit'])
     ->name('student.exam.submit.auto');
     
 // leaderboard
@@ -658,6 +661,9 @@ Route::get('/exam/review/{id}', [ExamController::class, 'review'])
 
 Route::get('/student/profile', [StudentController::class, 'profile'])
     ->name('student.profile');
+
+Route::post('/student/profile', [StudentController::class, 'updateProfile'])
+    ->name('student.profile.update');      
     
 Route::get('/student/change-password', [StudentController::class, 'changePassword'])
     ->name('student.password');
@@ -689,9 +695,9 @@ Route::get('/student/fees-history', [PaymentController::class, 'feesHistory'])
 // exam route
 Route::middleware(['auth','paid'])->group(function () {
 
-    Route::get('/exams', [ExamController::class,'index']);
-    Route::get('/exam/{id}', [ExamController::class,'start']);
-    Route::post('/exam/submit', [ExamController::class,'submit']);
+    Route::get('/student/exams', [ExamController::class,'index']);
+    Route::get('/student/exam/{id}', [ExamController::class,'start']);
+    Route::post('/student/exam/submit', [ExamController::class,'submit']);
 });  
 
 Route::get(
@@ -728,6 +734,120 @@ Route::get(
     '/student/weak-topics',
     [ExamController::class, 'weakTopics']
 )->name('student.weak.topics');
+
+// block external students
+Route::middleware([
+    'auth',
+    \App\Http\Middleware\BlockExternal::class
+])->group(function () {
+
+    Route::get('/student/{id}/qrcode', [QRcodeController::class, 'qr'])->name('student.qrcode');
+
+    Route::post('/student/school-fees', [PaymentController::class, 'submitSchoolFees'])
+    ->name('student.school.fees.submit');  
+
+    Route::get('/student/fees-history', [PaymentController::class, 'feesHistory'])
+        ->name('student.fees.history'); 
+
+    Route::get('/student/check-result', [ResultController::class, 'checker'])
+        ->name('results.checker');
+
+    Route::get('student/leaderboard', [App\Http\Controllers\Student\LeaderboardController::class, 'index'])
+        ->name('student.leaderboard'); 
+        
+    Route::get('/exam/result/{id}', [\App\Http\Controllers\Student\ExamController::class, 'result'])
+    ->name('student.exam.result');   
+    
+    Route::get('/student/email-activate', [PaymentController::class, 'emailActivate'])
+    ->name('student.email.activate');
+
+});
+
+// external student routes
+Route::middleware(['auth', 'ensure.external.class'])->group(function () {
+
+    Route::get('/student/exams', [ExamController::class,'index']);
+
+    Route::get('/student/exam/{id}', [ExamController::class,'start']);
+
+    Route::post('/student/exam/submit', [ExamController::class,'submit']);
+
+});
+
+Route::middleware('auth')->group(function () {
+
+    Route::get('/external/select-class', [StudentController::class, 'showClassForm'])
+        ->name('external.class.select');
+
+    Route::post('/external/select-class', [StudentController::class, 'saveClass'])
+        ->name('external.class.save');
+
+    Route::get('/student/student/exams', [ExamController::class, 'available'])
+    ->name('student.exams.available');
+    
+    // exam questions route
+    Route::get('/student/exam/question', [ExamController::class, 'question'])
+        ->name('student.exam.question');
+
+    Route::post('/student/exam/answer', [ExamController::class, 'answer'])
+        ->name('student.exam.answer');
+
+    Route::get('/student/exam/result/{id}', [\App\Http\Controllers\Student\ExamController::class, 'result'])
+        ->name('student.exam.result');      
+
+    // auto submition route
+    Route::get('/student/exam/submit-auto', [ExamController::class, 'autoSubmit'])
+        ->name('student.exam.submit.auto');
+        
+    Route::get('/student/practice', [ExamController::class, 'externalPracticeDashboard'])
+    ->name('external.student.practice.dashboard');
+    
+    Route::get('/get-topics/{subjectId}', function ($subjectId) {
+        return \App\Models\Topic::where('subject_id', $subjectId)->get();
+    });
+
+    Route::get('/student/practice/start', [ExamController::class, 'startPractice'])
+    ->name('student.practice.start');
+
+    Route::get('/student/practice/question', [ExamController::class, 'showQuestion'])
+    ->name('student.show.question');
+
+    Route::post('/student/practice/submit', [App\Http\Controllers\Student\External\ExamController::class, 'submitAnswer'])
+        ->name('practice.submit');
+
+    Route::get('/practice', [App\Http\Controllers\Student\External\PracticeController::class, 'dashboard'])
+        ->name('practice.dashboard');
+    
+    Route::post('/practice/start', [App\Http\Controllers\Student\External\PracticeController::class, 'startPractice'])
+        ->name('practice.start');
+    
+    Route::get('/practice/question', [App\Http\Controllers\Student\External\PracticeController::class, 'showQuestion'])
+        ->name('practice.show');
+    
+    Route::post('/practice/submit', [App\Http\Controllers\Student\External\PracticeController::class, 'submitAnswer'])
+        ->name('practice.submit');  
+    
+    Route::get('/student/practice/complete', [App\Http\Controllers\Student\External\ExamController::class, 'complete'])
+        ->name('practice.complete');
+
+});
+
+// routes/web.php
+
+// External Student Routes (Practice Only)
+// Route::middleware(['auth', 'role:student'])->prefix('student/external')->name('student.external.')->group(function () {
+//     Route::get('/practice', [App\Http\Controllers\Student\External\PracticeController::class, 'dashboard'])
+//         ->name('practice.dashboard');
+    
+//     Route::post('/practice/start', [App\Http\Controllers\Student\External\PracticeController::class, 'startPractice'])
+//         ->name('practice.start');
+    
+//     Route::get('/practice/question', [App\Http\Controllers\Student\External\PracticeController::class, 'showQuestion'])
+//         ->name('practice.show');
+    
+//     Route::post('/practice/submit', [App\Http\Controllers\Student\External\PracticeController::class, 'submitAnswer'])
+//         ->name('practice.submit');
+// });
 
 // student route ends here    
 

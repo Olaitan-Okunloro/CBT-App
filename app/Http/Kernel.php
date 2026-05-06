@@ -19,5 +19,9 @@ class Kernel extends HttpKernel
 
         'role' => \App\Http\Middleware\CheckRole::class,
 
+        'block.external' => \App\Http\Middleware\BlockExternal::class,
+
+        'ensure.external.class' => \App\Http\Middleware\EnsureExternalClassSelected::class,
+
     ];
 }

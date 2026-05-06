@@ -59,4 +59,9 @@ class StudentDetail extends Model
             'class_id'
         );
     }
+
+    public function isExternal()
+    {
+        return is_null($this->school_id);
+    }
 }
