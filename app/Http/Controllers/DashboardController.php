@@ -16,6 +16,7 @@ use App\Models\Announcement;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class DashboardController extends Controller
 {
@@ -321,39 +322,127 @@ class DashboardController extends Controller
         return view('admin.profile', compact('user'));
     }
 
+
     public function updateProfile(Request $request)
     {
-        $request->validate([
-            'name'  => 'required',
-            'email' => 'required|email'
+        // dd($request->all());
+        \Log::info('Profile update request received', [
+            'has_file' => $request->hasFile('profile_photo'),
+            'has_captured_photo' => !empty($request->captured_photo),
+            'all_files' => $request->allFiles(),
         ]);
 
+        $request->validate([
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . auth()->id(),
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+        ]);
+
+        // ✅ MUST COME FIRST
         $user = auth()->user();
 
+        // ✅ Update basic info
         $user->name  = $request->name;
         $user->email = $request->email;
 
-        if ($request->hasFile('profile_photo')) {
+        // ✅ Ensure directory exists
+        if (!file_exists(public_path('storage/profile'))) {
+            mkdir(public_path('storage/profile'), 0777, true);
+        }
+
+        // =========================================
+        // ✅ HANDLE CAMERA CAPTURE (BASE64)
+        // =========================================
+
+        if (!empty($request->captured_photo)) {
+
+            \Log::info('Captured photo detected');
+
+            // Delete old photo
+            if (
+                $user->profile_photo &&
+                file_exists(public_path('storage/profile/' . $user->profile_photo))
+            ) {
+                unlink(public_path('storage/profile/' . $user->profile_photo));
+            }
+
+            // Extract image
+            $image = $request->captured_photo;
+
+            $image = preg_replace('/^data:image\/\w+;base64,/', '', $image);
+
+            $image = str_replace(' ', '+', $image);
+
+            $imageData = base64_decode($image);
+
+            // Generate filename
+            $filename = Str::uuid() . '.jpg';
+
+            // Save image
+            file_put_contents(
+                public_path('storage/profile/' . $filename),
+                $imageData
+            );
+
+            // Save filename to DB
+            $user->profile_photo = $filename;
+
+            \Log::info('Captured photo saved', [
+                'filename' => $filename
+            ]);
+        }
+
+        // =========================================
+        // ✅ HANDLE NORMAL FILE UPLOAD
+        // =========================================
+
+        elseif ($request->hasFile('profile_photo')) {
 
             $file = $request->file('profile_photo');
 
-            $filename = time() . '.' . $file->getClientOriginalExtension();
+            // \Log::info('File upload detected', [
+            //     'original_name' => $file->getClientOriginalName(),
+            //     'size' => $file->getSize()
+            // ]);
 
-            $file->move(public_path('storage/profile'), $filename);
+            // Delete old photo
+            if (
+                $user->profile_photo &&
+                file_exists(public_path('storage/profile/' . $user->profile_photo))
+            ) {
+                unlink(public_path('storage/profile/' . $user->profile_photo));
+            }
+
+            $filename = Str::uuid() . '.' .
+                $file->getClientOriginalExtension();
+
+            $file->move(
+                public_path('storage/profile'),
+                $filename
+            );
 
             $user->profile_photo = $filename;
+
+            \Log::info('Uploaded photo saved', [
+                'filename' => $filename
+            ]);
         }
 
+        // ✅ SAVE USER
         $user->save();
 
+        // ✅ Activity log
         DB::table('activity_logs')->insert([
             'user_id'    => $user->id,
-            'activity'   => 'Updated admin profile',
+            'activity'   => 'Updated profile',
             'created_at' => now(),
             'updated_at' => now()
         ]);
 
-        return back()->with('success', 'Profile updated successfully');
+        return back()->with(
+            'success',
+            'Profile updated successfully'
+        );
     }
 
     public function password()
@@ -423,39 +512,6 @@ class DashboardController extends Controller
         return back()->with('success', 'Settings updated successfully');
     }
 
-    // public function announcements()
-    // {
-    //     $rows = DB::table('announcements')
-    //         ->latest()
-    //         ->paginate(10);
-
-    //     return view('admin.announcements', compact('rows'));
-    // }
-
-    // public function storeAnnouncement(Request $request)
-    // {
-    //     $request->validate([
-    //         'title' => 'required',
-    //         'message' => 'required'
-    //     ]);
-
-    //     DB::table('announcements')->insert([
-    //         'title' => $request->title,
-    //         'message' => $request->message,
-    //         'audience' => $request->audience,
-    //         'created_at' => now(),
-    //         'updated_at' => now()
-    //     ]);
-
-    //     DB::table('activity_logs')->insert([
-    //         'user_id' => auth()->id(),
-    //         'activity' => 'Posted announcement',
-    //         'created_at' => now(),
-    //         'updated_at' => now()
-    //     ]);
-
-    //     return back()->with('success', 'Announcement posted');
-    // }
 
     public function support()
     {

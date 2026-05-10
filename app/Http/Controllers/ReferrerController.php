@@ -104,29 +104,108 @@ class ReferrerController extends Controller
 
     public function updateProfile(Request $request)
     {
-        $request->validate([
-            'name'  => 'required',
-            'email' => 'required|email'
+        // dd($request->all());
+        \Log::info('Profile update request received', [
+            'has_file' => $request->hasFile('profile_photo'),
+            'has_captured_photo' => !empty($request->captured_photo),
+            'all_files' => $request->allFiles(),
         ]);
 
+        $request->validate([
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . auth()->id(),
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+        ]);
+
+        // ✅ MUST COME FIRST
         $user = auth()->user();
 
+        // ✅ Update basic info
         $user->name  = $request->name;
         $user->email = $request->email;
 
-        if ($request->hasFile('profile_photo')) {
+        // ✅ Ensure directory exists
+        if (!file_exists(public_path('storage/profile'))) {
+            mkdir(public_path('storage/profile'), 0777, true);
+        }
+
+        // =========================================
+        // ✅ HANDLE CAMERA CAPTURE (BASE64)
+        // =========================================
+
+        if (!empty($request->captured_photo)) {
+
+            \Log::info('Captured photo detected');
+
+            // Delete old photo
+            if (
+                $user->profile_photo &&
+                file_exists(public_path('storage/profile/' . $user->profile_photo))
+            ) {
+                unlink(public_path('storage/profile/' . $user->profile_photo));
+            }
+
+            // Extract image
+            $image = $request->captured_photo;
+
+            $image = preg_replace('/^data:image\/\w+;base64,/', '', $image);
+
+            $image = str_replace(' ', '+', $image);
+
+            $imageData = base64_decode($image);
+
+            // Generate filename
+            $filename = Str::uuid() . '.jpg';
+
+            // Save image
+            file_put_contents(
+                public_path('storage/profile/' . $filename),
+                $imageData
+            );
+
+            // Save filename to DB
+            $user->profile_photo = $filename;
+
+            \Log::info('Captured photo saved', [
+                'filename' => $filename
+            ]);
+        }
+
+        // =========================================
+        // ✅ HANDLE NORMAL FILE UPLOAD
+        // =========================================
+
+        elseif ($request->hasFile('profile_photo')) {
 
             $file = $request->file('profile_photo');
 
-            $filename = time() . '.' . $file->getClientOriginalExtension();
+            // Delete old photo
+            if (
+                $user->profile_photo &&
+                file_exists(public_path('storage/profile/' . $user->profile_photo))
+            ) {
+                unlink(public_path('storage/profile/' . $user->profile_photo));
+            }
 
-            $file->move(public_path('storage/profile'), $filename);
+            $filename = Str::uuid() . '.' .
+                $file->getClientOriginalExtension();
+
+            $file->move(
+                public_path('storage/profile'),
+                $filename
+            );
 
             $user->profile_photo = $filename;
+
+            \Log::info('Uploaded photo saved', [
+                'filename' => $filename
+            ]);
         }
 
+        // ✅ SAVE USER
         $user->save();
 
+        // ✅ Activity log
         DB::table('activity_logs')->insert([
             'user_id'    => $user->id,
             'activity'   => 'Updated profile',
@@ -134,7 +213,10 @@ class ReferrerController extends Controller
             'updated_at' => now()
         ]);
 
-        return back()->with('success', 'Profile updated successfully');
+        return back()->with(
+            'success',
+            'Profile updated successfully'
+        );
     }
 
     public function password()

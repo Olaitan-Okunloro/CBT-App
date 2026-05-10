@@ -5,6 +5,7 @@ namespace App\Http\Controllers\School;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Exam;
 use App\Models\StudentDetail;
 use App\Models\ClassLevel;
 use App\Models\TeacherDetail;
@@ -22,29 +23,35 @@ use Illuminate\Support\Str;
 class StudentController extends Controller
 {
     public function dashboard()
-    {
-        
-        $user = auth()->user();
+{
+    $user = auth()->user();
 
-        $attempts = ExamAttempt::where('user_id', $user->id)->get();
-
-        $subjectStats = ExamAttempt::with('exam.subject')
-            ->where('user_id', $user->id)
-            ->get()
-            ->groupBy('exam.subject.name');
-
-        $totalExams = $attempts->count();
-        $averageScore = $attempts->avg('score');
-        $highestScore = $attempts->max('score');
-
-        return view('dashboard.student', ['user' => auth()->user()], compact(
-            'totalExams',
-            'averageScore',
-            'highestScore',
-            'attempts',
-            'subjectStats'
-        ));
+    $attempts = ExamAttempt::where('user_id', $user->id)->get();
+    
+    // Ensure total_marks is not zero for any attempt
+    foreach ($attempts as $attempt) {
+        if ($attempt->total_marks <= 0) {
+            $attempt->total_marks = 1; // Set default to prevent division by zero
+        }
     }
+
+    $subjectStats = ExamAttempt::with('exam.subject')
+        ->where('user_id', $user->id)
+        ->get()
+        ->groupBy('exam.subject.name');
+
+    $totalExams = $attempts->count();
+    $averageScore = $attempts->avg('score');
+    $highestScore = $attempts->max('score');
+
+    return view('dashboard.student', compact(
+        'totalExams',
+        'averageScore',
+        'highestScore',
+        'attempts',
+        'subjectStats'
+    ));
+}
     
     // Show form
     public function create()
@@ -215,15 +222,6 @@ class StudentController extends Controller
         return view('student.results.student-result', compact('student', 'results'));
     }
 
-    // public function profile()
-    // {
-    //     $student = \App\Models\StudentDetail::with('user')
-    //         ->where('user_id', auth()->id())
-    //         ->first();
-
-    //     return view('student.profile', compact('student'));
-    // }
-
     public function profile()
     {
         $user = auth()->user();
@@ -233,29 +231,108 @@ class StudentController extends Controller
 
     public function updateProfile(Request $request)
     {
-        $request->validate([
-            'name'  => 'required',
-            'email' => 'required|email'
+        // dd($request->all());
+        \Log::info('Profile update request received', [
+            'has_file' => $request->hasFile('profile_photo'),
+            'has_captured_photo' => !empty($request->captured_photo),
+            'all_files' => $request->allFiles(),
         ]);
 
+        $request->validate([
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . auth()->id(),
+            'profile_photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048'
+        ]);
+
+        // ✅ MUST COME FIRST
         $user = auth()->user();
 
+        // ✅ Update basic info
         $user->name  = $request->name;
         $user->email = $request->email;
 
-        if ($request->hasFile('profile_photo')) {
+        // ✅ Ensure directory exists
+        if (!file_exists(public_path('storage/profile'))) {
+            mkdir(public_path('storage/profile'), 0777, true);
+        }
+
+        // =========================================
+        // ✅ HANDLE CAMERA CAPTURE (BASE64)
+        // =========================================
+
+        if (!empty($request->captured_photo)) {
+
+            \Log::info('Captured photo detected');
+
+            // Delete old photo
+            if (
+                $user->profile_photo &&
+                file_exists(public_path('storage/profile/' . $user->profile_photo))
+            ) {
+                unlink(public_path('storage/profile/' . $user->profile_photo));
+            }
+
+            // Extract image
+            $image = $request->captured_photo;
+
+            $image = preg_replace('/^data:image\/\w+;base64,/', '', $image);
+
+            $image = str_replace(' ', '+', $image);
+
+            $imageData = base64_decode($image);
+
+            // Generate filename
+            $filename = Str::uuid() . '.jpg';
+
+            // Save image
+            file_put_contents(
+                public_path('storage/profile/' . $filename),
+                $imageData
+            );
+
+            // Save filename to DB
+            $user->profile_photo = $filename;
+
+            \Log::info('Captured photo saved', [
+                'filename' => $filename
+            ]);
+        }
+
+        // =========================================
+        // ✅ HANDLE NORMAL FILE UPLOAD
+        // =========================================
+
+        elseif ($request->hasFile('profile_photo')) {
 
             $file = $request->file('profile_photo');
 
-            $filename = time() . '.' . $file->getClientOriginalExtension();
+            // Delete old photo
+            if (
+                $user->profile_photo &&
+                file_exists(public_path('storage/profile/' . $user->profile_photo))
+            ) {
+                unlink(public_path('storage/profile/' . $user->profile_photo));
+            }
 
-            $file->move(public_path('storage/profile'), $filename);
+            $filename = Str::uuid() . '.' .
+                $file->getClientOriginalExtension();
+
+            $file->move(
+                public_path('storage/profile'),
+                $filename
+            );
 
             $user->profile_photo = $filename;
+
+            \Log::info('Uploaded photo saved', [
+                'filename' => $filename
+            ]);
         }
 
+        // ✅ SAVE USER
         $user->save();
 
+        // ✅ Activity log
         DB::table('activity_logs')->insert([
             'user_id'    => $user->id,
             'activity'   => 'Updated profile',
@@ -263,7 +340,10 @@ class StudentController extends Controller
             'updated_at' => now()
         ]);
 
-        return back()->with('success', 'Profile updated successfully');
+        return back()->with(
+            'success',
+            'Profile updated successfully'
+        );
     }
 
     public function changePassword()
