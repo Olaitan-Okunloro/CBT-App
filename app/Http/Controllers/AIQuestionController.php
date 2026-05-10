@@ -24,36 +24,36 @@ class AIQuestionController extends Controller
      */
     
 
-    public function index()
-    {
-        $subjects = Subject::all();
+    // public function index()
+    // {
+    //     $subjects = Subject::all();
 
-        $categories = ExamCategory::all();
+    //     $categories = ExamCategory::all();
 
-        $teacher = DB::table('teacher_details')
-            ->where('user_id', auth()->id())
-            ->first();
+    //     $teacher = DB::table('teacher_details')
+    //         ->where('user_id', auth()->id())
+    //         ->first();
 
-        if (!$teacher) {
-            return back()->with(
-                'error',
-                'Teacher profile not found'
-            );
-        }
+    //     if (!$teacher) {
+    //         return back()->with(
+    //             'error',
+    //             'Teacher profile not found'
+    //         );
+    //     }
 
-        $classes = SchoolClass::with('classLevel')
-            ->where('school_id', $teacher->school_id)
-            ->get()
-            ->map(fn($row) => (object) [
-                'id'   => $row->class_level_id,
-                'name' => $row->classLevel->name ?? 'N/A'
-            ]);
+    //     $classes = SchoolClass::with('classLevel')
+    //         ->where('school_id', $teacher->school_id)
+    //         ->get()
+    //         ->map(fn($row) => (object) [
+    //             'id'   => $row->class_level_id,
+    //             'name' => $row->classLevel->name ?? 'N/A'
+    //         ]);
 
-        return view(
-            'teacher.questions.ai-generator',
-            compact('subjects', 'classes', 'categories')
-        );
-    }
+    //     return view(
+    //         'teacher.questions.ai-generator',
+    //         compact('subjects', 'classes', 'categories')
+    //     );
+    // }
 
     /**
      * Generate questions using AI

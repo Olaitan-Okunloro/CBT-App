@@ -10,6 +10,7 @@ use App\Models\Question;
 use App\Models\ExamAttempt;
 use App\Models\Answer;
 use App\Models\User;
+use App\Models\QuestionBank;
 
 use Maatwebsite\Excel\Facades\Empty;
 use Illuminate\Support\Facades\DB;
@@ -30,67 +31,45 @@ class ExamController extends Controller
 
         $studentId = $user->id;
 
-        // get correct answers
         $correct = DB::table('student_question_attempts')
             ->where('student_id', $studentId)
-            ->where('topic_id', $request->topic_id)
             ->where('is_correct', 1)
             ->pluck('question_id');
 
-        // 🚨 DO NOT use ->get() here
-        // if ($user->exam_type === 'EXTERNAL') {
-
-        //     $query = \App\Models\QuestionBank::where(
-        //         'class_level_id',
-        //         $user->studentDetail->class_id ?? $user->class_id
-        //     )->where(
-        //         'subject_id',
-        //         $exam->subject_id
-        //     );
-
-        // } else {
-
-        //     $query = \App\Models\Question::where(
-        //         'subject_id',
-        //         $exam->subject_id
-        //     );
-        // }
-
         $student = auth()->user();
 
-        $classId = $student->class_id ?? $student->studentDetail?->class_id;
+        $classId = $student->class_id
+            ?? $student->studentDetail?->class_id;
 
-        // 🔥 FORCE ONLY question bank for external
+        /*
+        |--------------------------------------------------------------------------
+        | QUESTION SOURCE
+        |--------------------------------------------------------------------------
+        */
+
         if ($student->exam_type === 'EXTERNAL') {
 
-            $query = \App\Models\QuestionBank::where('class_level_id', $classId);
+            $query = \App\Models\QuestionBank::query();
 
-            // optional: filter by subject if exam has subject
+            $request->session()->put(
+                'question_source', 'question_bank'
+            );
+
+            $query->where('class_level_id', $classId);
+
             if (!empty($exam->subject_id)) {
                 $query->where('subject_id', $exam->subject_id);
             }
 
         } else {
 
-            $query = \App\Models\Question::where('subject_id', $exam->subject_id);
-        }
+            $query = \App\Models\Question::query();
 
-        // ✅ THEN apply this AFTER
-        $query->whereNotIn('id', $correct);
+            $request->session()->put(
+                'question_source', 'questions'
+            );
 
-        // 🔁 If everything is done
-        if ($query->count() == 0) {
-
-            DB::table('student_question_attempts')
-                ->where('student_id', $studentId)
-                ->where('topic_id', $request->topic_id)
-                ->delete();
-
-            $query = Question::where('subject_id', $exam->subject_id);
-        }
-
-        // role filtering (still query builder)
-        if ($user->role === 'student') {
+            $query->where('subject_id', $exam->subject_id);
 
             if ($user->studentDetail?->school_id) {
 
@@ -104,37 +83,184 @@ class ExamController extends Controller
             }
         }
 
+        // avoid repeated correct answers
+        $query->whereNotIn('id', $correct);
+
         $total = $exam->total_questions;
 
-        // ✅ NOW fetch data
-        $questions = $query->inRandomOrder()->take($total)->get();
+        $questions = $query->inRandomOrder()
+            ->take($total)
+            ->get();
 
-        // fallback if not enough
+        // fallback
         if ($questions->count() < $total) {
+
             $questions = $query->inRandomOrder()->get();
         }
 
         if ($questions->isEmpty()) {
-            return back()->with('error', 'No questions available for this exam.');
+
+            return back()->with(
+                'error',
+                'No questions available for this exam.'
+            );
         }
 
         // create attempt
         $attempt = ExamAttempt::create([
             'user_id' => $studentId,
             'subject_id' => $exam->subject_id,
-            'exam_id' => $exam->id,
+            'exam_id' => $exam->exam_cat_id,
             'total' => $questions->count(),
             'started_at' => now()
         ]);
 
-        // session
-        $request->session()->put('exam_questions', $questions->pluck('id')->toArray());
-        $request->session()->put('attempt_id', $attempt->id);
-        $request->session()->put('current_index', 0);
-        $request->session()->put('exam_end_time', now()->addMinutes($exam->duration));
+        // 🔥 STORE SESSION
+        $request->session()->put(
+            'exam_questions',
+            $questions->pluck('id')->toArray()
+        );
+
+        $request->session()->put(
+            'attempt_id',
+            $attempt->id
+        );
+
+        $request->session()->put(
+            'current_index',
+            0
+        );
+
+        $request->session()->put(
+            'exam_end_time',
+            now()->addMinutes($exam->duration)
+        );
 
         return redirect()->route('student.exam.question');
     }
+
+    public function startPractice(Request $request)
+    {
+        $user = auth()->user();
+
+        $classId = $user->studentDetail?->class_id;
+
+        $subjectId = $request->subject_id;
+        $topicId = $request->topic_id;
+
+       // 🔥 fetch questions from question bank
+        // --------------------------------------------------
+    // GET ALL QUESTIONS FOR THIS TOPIC
+    // --------------------------------------------------
+
+    $allQuestions = QuestionBank::where('subject_id', $subjectId)
+        ->where('topic_id', $topicId)
+        ->where('class_level_id', $classId)
+        ->pluck('id');
+
+
+    // --------------------------------------------------
+    // GET QUESTIONS STUDENT ANSWERED CORRECTLY
+    // --------------------------------------------------
+
+        $correctlyAnswered = DB::table('student_question_attempts')
+            ->where('student_id', $user->id)
+            ->where('is_correct', 1)
+            ->pluck('question_id');
+
+
+    // --------------------------------------------------
+    // REMOVE CORRECTLY ANSWERED QUESTIONS
+    // --------------------------------------------------
+
+    $availableQuestions = $allQuestions->diff($correctlyAnswered);
+
+
+    // --------------------------------------------------
+    // IF ALL QUESTIONS HAVE BEEN ANSWERED CORRECTLY
+    // RESET THE CYCLE
+    // --------------------------------------------------
+
+    if ($availableQuestions->isEmpty()) {
+
+        $availableQuestions = $allQuestions;
+    }
+
+
+    // --------------------------------------------------
+    // FETCH QUESTIONS
+    // --------------------------------------------------
+
+    $questions = QuestionBank::whereIn(
+            'id',
+            $availableQuestions
+        )
+        ->inRandomOrder()
+        ->take(20)
+        ->get();
+
+        // 🚨 DEBUG
+        if ($questions->isEmpty()) {
+
+            return back()->with(
+                'error',
+                'No questions found in question bank.'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | CREATE ATTEMPT
+        |--------------------------------------------------------------------------
+        */
+
+        $attempt = \App\Models\ExamAttempt::create([
+            'user_id' => $user->id,
+            'subject_id' => $subjectId,
+            'exam_id' => null,
+            'total' => $questions->count(),
+            'question_source' => session('question_source'),
+            'started_at' => now()
+        ]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | STORE SESSION
+        |--------------------------------------------------------------------------
+        */
+
+        $request->session()->put(
+            'exam_questions',
+            $questions->pluck('id')->toArray()
+        );
+
+        $request->session()->put(
+            'attempt_id',
+            $attempt->id
+        );
+
+        $request->session()->put(
+            'current_index',
+            0
+        );
+
+        $request->session()->put(
+            'exam_end_time',
+            now()->addMinutes(20)
+        );
+
+        $request->session()->put('question_source', 'question_bank');
+
+        /*
+        |--------------------------------------------------------------------------
+        | REDIRECT TO QUESTION PAGE
+        |--------------------------------------------------------------------------
+        */
+
+        return redirect()->route('student.exam.question');
+    }
+
+
     // available exams
     public function available()
     {
@@ -164,8 +290,8 @@ class ExamController extends Controller
     // questions
     public function question(Request $request)
     {
-        $questions = $request->session()->get('exam_questions');
-        $index = $request->session()->get('current_index');
+        $questions = session('exam_questions');
+        $index = session('current_index');
 
         if (!$questions || !isset($questions[$index])) {
             return redirect()->route('student.exam.submit.auto');
@@ -173,9 +299,23 @@ class ExamController extends Controller
 
         $questionId = $questions[$index];
 
-        $question = Question::with('teacher_options')->find($questionId);
+        // 🔥 SOURCE CHECK
+        if (session('question_source') === 'question_bank') {
 
-        return view('student.exam.question', compact('question','index'));
+        // EXTERNAL
+        $question = \App\Models\QuestionBank::with(
+            'options'
+        )->find($questionId);
+
+        } else {
+
+            // INTERNAL
+            $question = \App\Models\Question::with(
+                'teacher_options'
+            )->find($questionId);
+        }
+
+        return view('student.exam.question', compact('question', 'index') );
     }
 
     // answer
@@ -198,7 +338,23 @@ class ExamController extends Controller
 
         $questionId = $questions[$index];
 
-        $question = Question::find($questionId);
+        $source = session('question_source');
+
+        if ($source === 'question_bank') {
+
+            $question = \App\Models\QuestionBank::find($questionId);
+
+        } else {
+
+            if (session('question_source') === 'question_bank') {
+
+                $question = \App\Models\QuestionBank::find($questionId);
+
+            } else {
+
+                $question = \App\Models\Question::find($questionId);
+            }
+        }
 
         if (!$question) {
             return redirect()->route('student.exam.submit.auto');
@@ -222,6 +378,7 @@ class ExamController extends Controller
                 'is_correct'     => $isCorrect ? 1 : 0,
                 'last_answer'    => $request->answer,
                 'attempts_count' => DB::raw('attempts_count + 1'),
+                'question_source' => session('question_source'),
                 'updated_at'     => now(),
                 'attempted_at'   => now()
             ]
@@ -235,7 +392,8 @@ class ExamController extends Controller
             ],
             [
                 'selected_option' => $request->answer,
-                'is_correct' => $isCorrect
+                'is_correct' => $isCorrect,
+                'question_source' => session('question_source'),
             ]
         );
 
@@ -397,16 +555,25 @@ class ExamController extends Controller
 
     public function review($id)
     {
-        $attempt = ExamAttempt::with([
-            'answers.question.teacher_options'
-        ])->findOrFail($id);
+        $attempt = ExamAttempt::with('answers')
+            ->findOrFail($id);
 
         return view('student.exam.review', compact('attempt'));
     }
 
     public function toggleSave($id)
     {
+        $user = auth()->user();
+        
         $studentId = auth()->id();
+        
+        $exam_type = $user->exam_type;
+
+        if ($exam_type === 'INTERNAL') {
+            $source = "question";
+        } else {
+            $source = "question_bank";
+        }
 
         $exists = DB::table('saved_questions')
             ->where('student_id', $studentId)
@@ -427,7 +594,8 @@ class ExamController extends Controller
 
             DB::table('saved_questions')->insert([
                 'student_id' => $studentId,
-                'question_id' => $id
+                'question_id' => $id,
+                'question_source' => $source
             ]);
 
             return response()->json([
@@ -438,13 +606,81 @@ class ExamController extends Controller
 
     public function savedQuestions()
     {
-        $rows = DB::table('saved_questions as s')
-            ->join('questions as q', 'q.id', '=', 's.question_id')
-            ->where('s.student_id', auth()->id())
-            ->select('q.*')
+        $savedRows = DB::table('saved_questions')
+            ->where('student_id', auth()->id())
             ->get();
 
-        return view('student.archive.index', compact('rows'));
+        $rows = collect();
+
+        foreach ($savedRows as $saved) {
+
+            $source = trim(strtolower(
+                $saved->question_source ?? ''
+            ));
+
+            // EXTERNAL QUESTIONS
+            if ($source == 'question_bank') {
+
+                $question = \App\Models\QuestionBank::with([
+                        'options',
+                        'subject'
+                    ])
+                    ->find($saved->question_id);
+
+            // INTERNAL QUESTIONS
+            } else {
+
+                $question = \App\Models\Question::with([
+                        'teacher_options',
+                        'subject'
+                    ])
+                    ->find($saved->question_id);
+            }
+
+            if ($question) {
+
+                // attach source dynamically
+                $question->question_source = $source;
+
+                $rows->push($question);
+            }
+        }
+
+        return view(
+            'student.archive.index',
+            compact('rows')
+        );
+    }
+
+    public function removeSavedQuestion(
+    Request $request,
+    $id
+    )
+    {
+        $deleted = DB::table('saved_questions')
+
+            ->where('student_id', auth()->id())
+
+            ->where('question_id', $id)
+
+            ->where(
+                'question_source',
+                $request->source
+            )
+
+            ->delete();
+
+        if ($deleted) {
+
+            return response()->json([
+                'status' => 'removed'
+            ]);
+        }
+
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Question not found'
+        ]);
     }
 
     public function weakTopics()
@@ -482,129 +718,12 @@ class ExamController extends Controller
         );
     }
 
-    public function startPractice(Request $request)
-    {
-        $user = auth()->user();
-        $studentDetail = $user->studentDetail;
-
-        // $isInternal = $studentDetail->isInternal();
-
-        $isInternal = !is_null($studentDetail->school_id);
-
-        
-        $classId = $studentDetail->class_id;
-        $subjectId = $request->subject_id;
-        $topicId = $request->topic_id;
-        
-        // 🎯 Check if student is internal or external
-        $isInternal = $studentDetail->school_id ? true : false; // Has school_id means internal
-        
-        // 🎯 Get previously answered correct questions
-        $correct = DB::table('student_question_attempts')
-            ->where('student_id', $user->id)
-            ->where('topic_id', $topicId)
-            ->where('is_correct', 1)
-            ->pluck('question_id');
-        
-        // 🎯 Fetch questions based on student type
-        if ($isInternal) {
-            // Internal students: fetch from questions table
-            $query = \App\Models\Question::where('class_level_id', $classId)
-                ->where('subject_id', $subjectId)
-                ->where('topic_id', $topicId)
-                ->whereNotIn('id', $correct);
-        } else {
-            // External students: fetch from question_banks table
-            $query = \App\Models\QuestionBank::where('class_level_id', $classId)
-                ->where('subject_id', $subjectId)
-                ->where('topic_id', $topicId)
-                ->whereNotIn('id', $correct);
-        }
-        
-        // 🔁 Reset if completed all questions
-        if ($query->count() == 0) {
-            
-            DB::table('student_question_attempts')
-                ->where('student_id', $user->id)
-                ->where('topic_id', $topicId)
-                ->delete();
-            
-            if ($isInternal) {
-                $query = \App\Models\Question::where('class_level_id', $classId)
-                    ->where('subject_id', $subjectId)
-                    ->where('topic_id', $topicId);
-            } else {
-                $query = \App\Models\QuestionBank::where('class_level_id', $classId)
-                    ->where('subject_id', $subjectId)
-                    ->where('topic_id', $topicId);
-            }
-        }
-        
-        // 🎯 20 questions per session
-        $questions = $query->inRandomOrder()->take(20)->get();
-        
-        if ($questions->isEmpty()) {
-            return back()->with('error', 'No questions found for this topic.');
-        }
-        
-        // Create pseudo attempt
-        $attempt = \App\Models\ExamAttempt::create([
-            'user_id' => $user->id,
-            'subject_id' => $subjectId,
-            'exam_id' => null,
-            'total' => $questions->count(),
-            'started_at' => now()
-        ]);
-        
-        session([
-            'exam_questions' => $questions->pluck('id')->toArray(),
-            'attempt_id' => $attempt->id,
-            'current_index' => 0,
-            'exam_end_time' => now()->addMinutes($questions->count()),
-            'is_internal' => $isInternal // Store to know which table to use during answering
-        ]);
-        
-        return redirect()->route('student.exam.question');
-    }
-
-    public function showQuestion()
-    {
-        $user = auth()->user();
-        
-        // Get questions from session
-        $questionIds = session('practice_questions');
-        $currentIndex = session('current_index', 0);
-        
-        // Check if questions exist
-        if (!$questionIds || !is_array($questionIds)) {
-            return redirect()->route('student.practice.dashboard')
-                ->with('error', 'No questions found. Please start a new practice session.');
-        }
-        
-        $totalQuestions = count($questionIds);
-        
-        if ($currentIndex >= $totalQuestions) {
-            return redirect()->route('student.external.practice.complete');
-        }
-        
-        // Get the current question from EXTERNAL question_banks table
-        $questionId = $questionIds[$currentIndex];
-        $question = QuestionBank::with('options')->find($questionId);
-        
-        if (!$question) {
-            return redirect()->route('student.practice.dashboard')
-                ->with('error', 'Question not found.');
-        }
-        
-        return view('student.practice.practice-question', compact('question', 'currentIndex', 'totalQuestions'));
-    }
-
-
-    public function externalPracticeDashboard()
+    
+    public function practiceDashboard()
     {
         $subjects = \App\Models\Subject::all(); // ✅ fetch all
 
-        return view('student.practice', compact('subjects'));
+        return view('student.external.practice', compact('subjects'));
     }
 
     public function submitAnswer(Request $request)

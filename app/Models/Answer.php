@@ -11,7 +11,8 @@ class Answer extends Model
         'attempt_id',
         'question_id',
         'selected_option',
-        'is_correct'
+        'is_correct',
+        'question_source'
     ];
 
     public function attempt()
@@ -21,7 +22,18 @@ class Answer extends Model
 
     public function question()
     {
-        return $this->belongsTo(Question::class);
+        if (($this->question_source ?? '') === 'question_bank') {
+
+            return $this->belongsTo(
+                \App\Models\QuestionBank::class,
+                'question_id'
+            );
+        }
+
+        return $this->belongsTo(
+            \App\Models\Question::class,
+            'question_id'
+        );
     }
 }
 

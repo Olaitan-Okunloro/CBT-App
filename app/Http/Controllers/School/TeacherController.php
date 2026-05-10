@@ -23,68 +23,8 @@ use Illuminate\Support\Facades\Mail;
 class TeacherController extends Controller
 {
 
-    // public function dashboard()
-    // {
-    //     $user = auth()->user();
-
-    //     $teacher = \App\Models\TeacherDetail::where(
-    //         'user_id',
-    //         $user->id
-    //     )->first();
-
-    //     $subjects = \App\Models\TeacherSubject::where(
-    //         'teacher_id',
-    //         $teacher->user_id
-    //     )->count();
-
-    //     $students = \App\Models\StudentDetail::where(
-    //         'school_id',
-    //         $teacher->school_id
-    //     )->count();
-
-    //     $results = \App\Models\ResultScore::where(
-    //         'created_by',
-    //         $user->id
-    //     )->count();
-
-    //     $announcements = \App\Models\Announcement::where(
-    //         'status',
-    //         'active'
-    //     )
-    //     ->whereIn('audience', ['all', 'teacher'])
-    //     ->latest()
-    //     ->take(5)
-    //     ->get();
-
-    //     return view(
-    //         'dashboard.teacher',
-    //         compact(
-    //             'subjects',
-    //             'students',
-    //             'results',
-    //             'announcements'
-    //         )
-    //     );
-    // }
-
     public function dashboard()
     {
-
-        $announcements = \App\Models\Announcement::where(
-            'status',
-            'active'
-        )
-        ->where(function ($q) {
-
-            $q->where('audience', 'all')
-              ->orWhere(
-                  'audience',
-                  auth()->user()->role
-              );
-        })
-        ->latest()
-        ->take(5)
-        ->get();
 
         $teacher = auth()->user();
         
@@ -104,7 +44,7 @@ class TeacherController extends Controller
         // Get teacher's questions count
         $questionsCount = Question::where('created_by', $teacher->id)->count();
         
-        return view('dashboard.teacher', compact('announcements'), [
+        return view('dashboard.teacher', [
             'studentsCount' => $students->count(),
             'avgScore' => $attempts->avg('score'),
             'totalAttempts' => $attempts->count(),
@@ -139,43 +79,73 @@ class TeacherController extends Controller
 
     public function store(Request $request)
     {
-
         $request->validate([
-            'name' => 'required',
-            'email' => 'required|email|unique:users',
-            'phone' => 'required',
-            'class_id' => 'required',
+            'teachers' => 'required|array|min:1',
+            'teachers.*.name' => 'required|string|max:255',
+            'teachers.*.email' => 'required|email|unique:users,email',
+            'teachers.*.phone' => 'required|string|max:20',
+            'teachers.*.class_id' => 'required|exists:classes,id',
         ]);
 
         // Get school id of logged in school
-        $schoolId = auth()->user()->schoolDetail->school_id;
-
-        // Create teacher user
+        $schoolDetail = auth()->user()->schoolDetail;
+        $schoolId = $schoolDetail->school_id;
+        
         // $password = Str::random(8);
-        $password = 'password123';
+        $password = 'password123'; // Default password
+        $successCount = 0;
+        $errors = [];
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($password),
-            'phone' => $request->phone,
-            'role' => 'teacher',
-            'exam_type' => 'GENERAL',
-            'is_active' => true
-        ]);
+        foreach ($request->teachers as $index => $teacherData) {
+            try {
+                // Check if email already exists (additional check)
+                $existingUser = User::where('email', $teacherData['email'])->exists();
+                if ($existingUser) {
+                    $errors[] = "Teacher " . ($index + 1) . " ({$teacherData['email']}) already exists.";
+                    continue;
+                }
 
-        // Send Email
-        Mail::to($user->email)->send(new UserCreatedMail($user, $password));
+                // Create teacher user
+                $user = User::create([
+                    'name' => $teacherData['name'],
+                    'email' => $teacherData['email'],
+                    'password' => Hash::make($password),
+                    'phone' => $teacherData['phone'],
+                    'role' => 'teacher',
+                    'exam_type' => 'GENERAL',
+                    'is_active' => true
+                ]);
 
-        // Link teacher to school
-        TeacherDetail::create([
-            'user_id' => $user->id,
-            'class_id' => $request->class_id,
-            'school_id' => $schoolId,
-            'has_paid' => true
-        ]);
+                // Send Email (optional - can be disabled for bulk upload)
+                try {
+                    Mail::to($user->email)->send(new UserCreatedMail($user, $password));
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send email to: ' . $user->email);
+                }
 
-        return redirect()->back()->with('success','Teacher created successfully');
+                // Link teacher to school and class
+                TeacherDetail::create([
+                    'user_id' => $user->id,
+                    'class_id' => $teacherData['class_id'],
+                    'school_id' => $schoolId,
+                    'has_paid' => true
+                ]);
+
+                $successCount++;
+
+            } catch (\Exception $e) {
+                $errors[] = "Teacher " . ($index + 1) . " ({$teacherData['name']}) failed: " . $e->getMessage();
+            }
+        }
+
+        $message = "$successCount teacher(s) created successfully!";
+        
+        if (!empty($errors)) {
+            $message .= " Errors: " . implode('; ', $errors);
+            return redirect()->back()->with('warning', $message);
+        }
+
+        return redirect()->route('school.teachers')->with('success', $message);
     }
 
     public function profile()
@@ -295,6 +265,33 @@ class TeacherController extends Controller
             'teacher.questions.index',
             compact('rows')
         );
+    }
+
+    // student list
+    public function students(Request $request)
+    {
+        $teacher = auth()->user();
+        
+        // Get teacher's ID
+        $teacherId = $teacher->id;
+        
+        // Get search term from request
+        $search = $request->get('search');
+        
+        // FETCH STUDENTS that have this teacher_id in their student_details
+        $students = \App\Models\User::whereHas('studentDetail', function($query) use ($teacherId) {
+                $query->where('teacher_id', $teacherId);
+            })
+            ->with(['studentDetail.schoolClass.classLevel']) // Load schoolClass and its classLevel
+            ->when($search, function($query, $search) {
+                return $query->where('name', 'like', '%' . $search . '%')
+                            ->orWhere('email', 'like', '%' . $search . '%');
+            })
+            ->latest()
+            ->paginate(10)
+            ->appends(['search' => $search]); // Preserve search query in pagination
+        
+        return view('teacher.students.index', compact('students', 'search'));
     }
 
     public function delete($id)

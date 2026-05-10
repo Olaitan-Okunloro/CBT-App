@@ -1,84 +1,130 @@
-<!-- resources/views/student/external/practice.blade.php -->
 @extends('layouts.app')
 
-@section('title', 'Practice - External Student')
+@section('title', 'Practice')
 
 @section('content')
-<div class="container">
-    <div class="alert alert-info mb-4">
-        <i class="fas fa-globe me-2"></i> 
-        <strong>External Practice Mode:</strong> You are practicing from the public question bank.
-    </div>
 
-    <div class="card shadow-sm">
-        <div class="card-header bg-primary text-white">
-            <h4 class="mb-0">📚 Select Practice Parameters</h4>
+<div class="container">
+
+<style>
+.subject-btn.active{
+    background-color:#0d6efd !important;
+    color:white !important;
+}
+</style>
+    
+    <!-- 🔴 EXACT LOCATION FOR THE BLADE ALERT CODE 🔴 -->
+    @php
+    // 🔴 USE THIS DIRECT CHECK INSTEAD 🔴
+    $isInternal = !is_null(auth()->user()->studentDetail->school_id);
+    @endphp
+
+    @if($isInternal)
+        <div class="alert alert-info mb-4">
+            <i class="fas fa-school me-2"></i> You are practicing from your school's question bank.
         </div>
-        <div class="card-body">
-            <form action="{{ route('student.external.practice.start') }}" method="POST">
-                @csrf
-                
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold">Select Class</label>
-                        <select name="class_id" class="form-select" id="class_id" required>
-                            <option value="">-- Select Class --</option>
-                            @foreach($classes as $class)
-                                <option value="{{ $class->id }}">{{ $class->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold">Select Subject</label>
-                        <select name="subject_id" class="form-select" id="subject_id" required>
-                            <option value="">-- Select Subject --</option>
-                            @foreach($subjects as $subject)
-                                <option value="{{ $subject->id }}">{{ $subject->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label fw-bold">Select Topic</label>
-                        <select name="topic_id" class="form-select" id="topic_id" required>
-                            <option value="">-- Select Topic --</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <button type="submit" class="btn btn-primary btn-lg w-100">
-                    <i class="fas fa-play-circle me-2"></i>Start Practice
-                </button>
-            </form>
+    @else
+        <div class="alert alert-warning mb-4">
+            <i class="fas fa-globe me-2"></i> You are practicing from the public question bank.
         </div>
-    </div>
+    @endif
+
+    <h4 class="mb-4">📚 Practice Questions</h4>
+
+    <form action="{{ route('student.external.practice.start') }}" method="GET">
+
+        {{-- SUBJECTS --}}
+        <div class="mb-4">
+            <h5>Select Subject</h5>
+
+            <div class="row g-2">
+                @foreach($subjects as $subject)
+                    <div class="col-md-3 col-6">
+                        <button type="button"
+                                class="subject-btn btn btn-outline-primary w-100"
+                                data-id="{{ $subject->id }}">
+                            {{ $subject->name }}
+                        </button>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        {{-- REQUIRED hidden field --}}
+        <input type="hidden" name="subject_id" id="subject_id">
+
+        {{-- TOPIC --}}
+        <div class="mb-3">
+            <select name="topic_id" id="topic" required>
+                <option value="">Select Topic</option>
+            </select>
+        </div>
+
+        <button class="btn btn-primary">
+            🚀 Start Practice
+        </button>
+
+    </form>
+
 </div>
 
+@endsection
+
+@push('scripts')
 <script>
-document.getElementById('subject_id').addEventListener('change', function() {
-    let subjectId = this.value;
-    let topicSelect = document.getElementById('topic_id');
-    
-    if (!subjectId) {
-        topicSelect.innerHTML = '<option value="">-- Select Topic --</option>';
-        return;
-    }
-    
-    topicSelect.innerHTML = '<option>Loading...</option>';
-    
-    fetch(`/get-topics/${subjectId}`)
-        .then(res => res.json())
-        .then(data => {
-            let options = '<option value="">-- Select Topic --</option>';
-            data.forEach(topic => {
-                options += `<option value="${topic.id}">${topic.name}</option>`;
-            });
-            topicSelect.innerHTML = options;
-        })
-        .catch(() => {
-            topicSelect.innerHTML = '<option value="">-- Error loading topics --</option>';
+document.addEventListener("DOMContentLoaded", function () {
+
+    const buttons = document.querySelectorAll('.subject-btn');
+
+    buttons.forEach(btn => {
+
+        btn.addEventListener('click', function () {
+
+            let subjectId = this.dataset.id;
+
+            // set hidden input
+            document.getElementById('subject_id').value = subjectId;
+
+            // highlight selected
+            buttons.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+
+            // load topics
+            let topicSelect = document.getElementById('topic');
+            topicSelect.innerHTML = '<option>Loading...</option>';
+
+            fetch('/get-topics/' + subjectId)
+                .then(res => res.json())
+                .then(data => {
+
+                    let options = '<option value="">Select Topic</option>';
+
+                    data.forEach(topic => {
+                        options += `<option value="${topic.id}">${topic.topic}</option>`;
+                    });
+
+                    topicSelect.innerHTML = options;
+                });
+
         });
+
+    });
+
+});
+
+document.querySelector('form').addEventListener('submit', function(e){
+
+    let subject = document.getElementById('subject_id').value;
+    let topic = document.getElementById('topic').value;
+
+    if(!subject || !topic){
+
+        e.preventDefault();
+
+        alert('Please select subject and topic');
+
+    }
+
 });
 </script>
-@endsection
+@endpush

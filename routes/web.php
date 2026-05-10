@@ -22,6 +22,9 @@ use App\Http\Controllers\SupportController;
 use App\Http\Controllers\ReferrerController;
 use App\Http\Controllers\BulkPaymentController;
 use App\Http\Controllers\Student\External\PracticeController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\ResetPasswordController;
+use App\Http\Controllers\Auth\NewPasswordController;
 
 
 use Illuminate\Support\Facades\Route;
@@ -116,6 +119,42 @@ Route::middleware(['auth'])->group(function () {
         [SupportController::class, 'store']
     )->name('support.store');
 
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| Password Reset Routes
+|--------------------------------------------------------------------------
+*/
+
+// Password Reset Routes
+Route::middleware('guest')->group(function () {
+    Route::get('forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'showLinkRequestForm'])
+        ->name('password.request');
+    
+    Route::post('forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'sendResetLinkEmail'])
+        ->name('password.email');
+    
+    Route::get('reset-password/{token}', [App\Http\Controllers\Auth\ResetPasswordController::class, 'showResetForm'])
+        ->name('password.reset');
+    
+    // 🔴 CHANGE THIS - Use POST instead of PUT
+    Route::post('reset-password', [App\Http\Controllers\Auth\ResetPasswordController::class, 'reset'])
+        ->name('password.update');
+});
+
+Route::middleware('guest')->group(function () {
+
+    Route::get(
+        '/reset-password/{token}',
+        [NewPasswordController::class, 'create']
+    )->name('password.reset');
+
+    Route::post(
+        '/reset-password',
+        [NewPasswordController::class, 'store']
+    )->name('password.store');
 });
 
 
@@ -236,6 +275,9 @@ Route::get('/admin/question-bank', [AdminAIQuestionController::class, 'admin'])-
 
 Route::post('/admin/question-bank/delete/{id}',[AdminAIQuestionController::class, 'delete'])
 ->name('admin.qb.delete');
+
+Route::get('/admin/subject-topic-record', [DashboardController::class, 'subjectTopicrecord'])
+    ->name('admin.subject.topic.record');  
             
 // admin route ends here   
 
@@ -467,7 +509,7 @@ Route::get('/teacher/ai-generator', function() {
     if (auth()->user()->role !== 'teacher') {
         abort(403, 'Unauthorized');
     }
-    return app()->make(AIQuestionController::class)->index();
+    return app()->make(QuestionBankController::class)->index();
 })->name('teacher.ai.generator');    
 
 Route::post('/teacher/ai-save', [App\Http\Controllers\AIQuestionController::class, 'save'])
@@ -572,10 +614,14 @@ Route::get(
     [App\Http\Controllers\Teacher\QuestionController::class, 'downloadPdf']
 )->name('teacher.exam.paper.pdf');
 
-Route::get(
-'/teacher/answer-sheet',
-[QuestionController::class, 'answerSheet']
-)->name('teacher.answer.sheet');
+Route::get('/teacher/answer-sheet', [QuestionController::class, 'answerSheet'])
+    ->name('teacher.answer.sheet');
+
+Route::get('/teacher/students', [TeacherController::class, 'students'])
+    ->name('teacher.students');  
+    
+Route::get('/get-topics/{subjectId}', [TopicController::class, 'getTopicsBySubject'])
+    ->name('get.topics');    
 
 // teacher's route ends here 
 
@@ -695,7 +741,7 @@ Route::get('/student/fees-history', [PaymentController::class, 'feesHistory'])
 // exam route
 Route::middleware(['auth','paid'])->group(function () {
 
-    Route::get('/student/exams', [ExamController::class,'index']);
+    // Route::get('/student/exams', [ExamController::class,'index']);
     Route::get('/student/exam/{id}', [ExamController::class,'start']);
     Route::post('/student/exam/submit', [ExamController::class,'submit']);
 });  
@@ -763,6 +809,11 @@ Route::middleware([
 
 });
 
+Route::delete(
+    '/student/save-question/{id}',
+    [ExamController::class, 'removeSavedQuestion']
+)->name('student.save-question.remove');
+
 // external student routes
 Route::middleware(['auth', 'ensure.external.class'])->group(function () {
 
@@ -812,23 +863,27 @@ Route::middleware('auth')->group(function () {
     Route::get('/student/practice/question', [ExamController::class, 'showQuestion'])
     ->name('student.show.question');
 
-    Route::post('/student/practice/submit', [App\Http\Controllers\Student\External\ExamController::class, 'submitAnswer'])
-        ->name('practice.submit');
+    // Route::post('/student/practice/submit', [App\Http\Controllers\Student\External\ExamController::class, 'submitAnswer'])
+    //     ->name('practice.submit');
 
-    Route::get('/practice', [App\Http\Controllers\Student\External\PracticeController::class, 'dashboard'])
-        ->name('practice.dashboard');
+    // Route::get('/practice', [App\Http\Controllers\Student\External\PracticeController::class, 'dashboard'])
+    //     ->name('practice.dashboard');
+
+    Route::get('/student/practice', [ExamController::class, 'practiceDashboard'])
+        ->name('student.practice.page');
     
-    Route::post('/practice/start', [App\Http\Controllers\Student\External\PracticeController::class, 'startPractice'])
-        ->name('practice.start');
+    // Route::get('/student/practice/start', [ExamController::class, 'startPractice'])
+    // ->name('student.external.practice.start');
+
+    // In routes/web.php
+    Route::get('/student/external/practice', [ExamController::class, 'startPractice'])
+    ->name('student.external.practice.show');
     
-    Route::get('/practice/question', [App\Http\Controllers\Student\External\PracticeController::class, 'showQuestion'])
-        ->name('practice.show');
+    // Route::post('/practice/submit', [App\Http\Controllers\Student\External\PracticeController::class, 'submitAnswer'])
+    //     ->name('practice.submit');  
     
-    Route::post('/practice/submit', [App\Http\Controllers\Student\External\PracticeController::class, 'submitAnswer'])
-        ->name('practice.submit');  
-    
-    Route::get('/student/practice/complete', [App\Http\Controllers\Student\External\ExamController::class, 'complete'])
-        ->name('practice.complete');
+    // Route::get('/student/practice/complete', [App\Http\Controllers\Student\External\ExamController::class, 'complete'])
+    //     ->name('practice.complete');
 
 });
 

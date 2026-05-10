@@ -8,7 +8,9 @@ use App\Models\Question;
 use App\Models\Subject;
 use App\Models\ClassLevel;
 use App\Models\TeacherDetail;
+use App\Models\ExamCategory;
 use App\Models\Option;
+use App\Models\Topic;
 
 use Barryvdh\DomPDF\Facade\Pdf;
 
@@ -20,7 +22,15 @@ class QuestionController extends Controller
     {
         $subjects = Subject::all();
         $classes = ClassLevel::all();
-        return view('teacher.questions.create', compact('subjects','classes'));
+        $categories = ExamCategory::all();
+        
+        return view('teacher.questions.create', compact('subjects','classes', 'categories'));
+    }
+
+    public function getTopicsBySubject($subjectId)
+    {
+        $topics = \App\Models\Topic::where('subject_id', $subjectId)->get(['id', 'name']);
+        return response()->json($topics);
     }
 
     // store 
@@ -30,6 +40,8 @@ class QuestionController extends Controller
         // Validate the request
         $request->validate([
             'subject_id' => 'required|exists:subjects,id',
+            'exam_cat_id'   => 'required',
+            'topic_id'   => 'required',
             'questions' => 'required|array|min:1',
             'questions.*.question_type' => 'required|in:objective,fill_in_the_gap',
             'questions.*.question_text' => 'required|string',
@@ -68,7 +80,9 @@ class QuestionController extends Controller
                 // Prepare base question data
                 $questionData = [
                     'subject_id' => $request->subject_id,
+                    'topic_id' => $request->topic_id,
                     'class_level_id' => $teacher->class_id ?? null,
+                    'exam_cat_id'   => $request->exam_cat_id,
                     'school_id' => $teacher->school_id,
                     'question_type' => $questionType,
                     'question_text' => $q['question_text'],

@@ -24,7 +24,9 @@ class QuestionBank extends Model
     {
         return $this->hasMany(
             \App\Models\TeacherOption::class,
-            'question_id'
+            'question_id',
+            'id',
+            'option_text'
         );
     }
 

@@ -16,28 +16,9 @@ class ReferrerController extends Controller
 {
     public function dashboard()
     {
-
-        $announcements = \App\Models\Announcement::where(
-            'status',
-            'active'
-        )
-        ->where(function ($q) {
-
-            $q->where('audience', 'all')
-              ->orWhere(
-                  'audience',
-                  auth()->user()->role
-              );
-        })
-        ->latest()
-        ->take(5)
-        ->get();
-
         $user = auth()->user();
 
         $referrer_code = $user->referral_code;
-
-        // abort_if(!$user, 403);
 
         if (!$user) {
             return redirect()->route('login');
@@ -51,8 +32,6 @@ class ReferrerController extends Controller
             ->latest()
             ->take(10)
             ->get();
-
-        
 
         $totalEarnings = Commission::where('referrer_id', $user->id)
             ->sum('amount');
@@ -72,8 +51,7 @@ class ReferrerController extends Controller
             'studentRefs',
             'schoolRefs',
             'totalRefs',
-            'referrer_code',
-            'announcements'
+            'referrer_code'
         ));
     }
 

@@ -4,105 +4,218 @@
 
 <div class="container text-white">
 
-<h3>📝 Exam Review</h3>
+    <h3 class="mb-4">📝 Exam Review</h3>
 
-@php
-// ✅ Fetch saved questions ONCE (not inside loop)
-$saved = DB::table('saved_questions')
-    ->where('student_id', auth()->id())
-    ->pluck('question_id')
-    ->toArray();
-@endphp
+    @php
+        // ✅ Fetch saved questions ONCE
+        $saved = DB::table('saved_questions')
+            ->where('student_id', auth()->id())
+            ->pluck('question_id')
+            ->toArray();
+    @endphp
 
-@foreach($attempt->answers as $index => $answer)
+    @foreach($attempt->answers as $index => $answer)
 
-<div class="card mb-3 p-3">
+        @php
+            // 🔥 NORMALIZE SOURCE
+            $source = trim(strtolower($answer->question_source ?? ''));
 
-    <p>
-        <strong>Q{{ $index + 1 }}:</strong>
-        {{ $answer->question->question_text }}
-    </p>
+            // 🔥 DETERMINE QUESTION SOURCE
+            if ($source == 'question_bank') {
 
-    {{-- ⭐ SAVE BUTTON --}}
-    <div class="mb-2 text-end">
+                $question = \App\Models\QuestionBank::with('options')
+                    ->find($answer->question_id);
 
-        <button 
-            onclick="toggleSave({{ $answer->question->id }}, this)"
-            class="btn btn-sm {{ in_array($answer->question->id, $saved) ? 'btn-primary' : 'btn-outline-warning			warning' }}">
+            } else {
 
-            {{ in_array($answer->question->id, $saved) ? '✅ Saved' : '⭐ Save Question' }}
+                $question = \App\Models\Question::with('teacher_options')
+                    ->find($answer->question_id);
+            }
 
-        </button>
+        @endphp
 
-    </div>
+        {{-- 🚨 SAFETY --}}
+        @if(!$question)
 
-    {{-- OBJECTIVE --}}
-    @if($answer->question->question_type === 'objective')
+            <div class="alert alert-danger mb-3">
+                Question not found.
+            </div>
 
-        @foreach($answer->question->teacher_options as $option)
+            @continue
 
-            <div>
+        @endif
 
-                {{ $option->option_label }}.
-                {{ $option->option_text }}
+        <div class="card mb-3 p-3 text-dark">
 
-                @if($option->option_label == $answer->question->correct_answer)
-                    <span class="badge bg-success">Correct Answer</span>
+            {{-- QUESTION --}}
+            <p>
+                <strong>Q{{ $index + 1 }}:</strong>
+                {{ $question->question_text }}
+            </p>
+
+            {{-- SAVE BUTTON --}}
+            <div class="mb-2 text-end">
+
+                <button
+                    onclick="toggleSave({{ $question->id }}, this)"
+                    class="btn btn-sm {{ in_array($question->id, $saved) ? 'btn-success' : 'btn-outline-warning' }}">
+
+                    {{ in_array($question->id, $saved) ? '✅ Saved' : '⭐ Save Question' }}
+
+                </button>
+
+            </div>
+
+            {{-- OBJECTIVE --}}
+            @if($question->question_type === 'objective')
+
+                {{-- EXTERNAL QUESTIONS --}}
+                @if($source == 'question_bank')
+
+                    @foreach($question->options as $option)
+
+                        <div class="mb-2">
+
+                            <strong>{{ $option->option_label }}.</strong>
+                            {{ $option->option_text }}
+
+                            {{-- CORRECT ANSWER --}}
+                            @if($option->option_label == $question->correct_answer)
+
+                                <span class="badge bg-success">
+                                    Correct Answer
+                                </span>
+
+                            @endif
+
+                            {{-- STUDENT WRONG ANSWER --}}
+                            @if(
+                                $option->option_label == $answer->selected_option
+                                && !$answer->is_correct
+                            )
+
+                                <span class="badge bg-danger">
+                                    Your Answer
+                                </span>
+
+                            @endif
+
+                        </div>
+
+                    @endforeach
+
+                {{-- INTERNAL QUESTIONS --}}
+                @else
+
+                    @foreach($question->teacher_options as $option)
+
+                        <div class="mb-2">
+
+                            <strong>{{ $option->option_label }}.</strong>
+                            {{ $option->option_text }}
+
+                            {{-- CORRECT ANSWER --}}
+                            @if($option->option_label == $question->correct_answer)
+
+                                <span class="badge bg-success">
+                                    Correct Answer
+                                </span>
+
+                            @endif
+
+                            {{-- STUDENT WRONG ANSWER --}}
+                            @if(
+                                $option->option_label == $answer->selected_option
+                                && !$answer->is_correct
+                            )
+
+                                <span class="badge bg-danger">
+                                    Your Answer
+                                </span>
+
+                            @endif
+
+                        </div>
+
+                    @endforeach
+
                 @endif
 
-                @if($option->option_label == $answer->selected_option && !$answer->is_correct)
-                    <span class="badge bg-danger">Your Answer</span>
+            {{-- FILL IN THE GAP --}}
+            @else
+
+                <p>
+                    Your Answer:
+                    <strong>{{ $answer->selected_option }}</strong>
+                </p>
+
+                <p>
+                    Correct Answer:
+                    <strong>{{ $question->correct_answer }}</strong>
+                </p>
+
+            @endif
+
+            {{-- EXPLANATION --}}
+            @if(!empty($question->explanation))
+
+                <div class="alert alert-info mt-3">
+
+                    <strong>
+                        📘 Explanation:
+                    </strong>
+
+                    <hr>
+
+                    {!! nl2br(e($question->explanation)) !!}
+
+                </div>
+
+            @endif
+
+            {{-- RESULT --}}
+            <div class="mt-3">
+
+                @if($answer->is_correct)
+
+                    <span class="badge bg-success">
+                        Correct
+                    </span>
+
+                @else
+
+                    <span class="badge bg-danger">
+                        Wrong
+                    </span>
+
                 @endif
 
             </div>
 
-        @endforeach
+        </div>
 
-    {{-- FILL --}}
-    @else
-
-        <p>
-            Your Answer:
-            <strong>{{ $answer->selected_option }}</strong>
-        </p>
-
-        <p>
-            Correct Answer:
-            <strong>{{ $answer->question->correct_answer }}</strong>
-        </p>
-
-    @endif
-
-    {{-- RESULT --}}
-    <div class="mt-2">
-
-        @if($answer->is_correct)
-            <span class="badge bg-success">Correct</span>
-        @else
-            <span class="badge bg-danger">Wrong</span>
-        @endif
-
-    </div>
-
-</div>
-
-@endforeach
+    @endforeach
 
 </div>
 
 <br>
 
-<a href="{{ route('student.exams.available') }}"
+
+<a href="{{ route('dashboard') }}"
    class="btn btn-primary mt-3">
-
-    Take Another Exam
-
-</a><br><br>
-
-
-<a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" href="{{ route('dashboard') }}">
-    Back to the Dashboard
+    ← Back to Dashboard
 </a>
+
+<!-- <div class="text-end mt-3">
+
+    <a class="btn btn-outline-light"
+       href="{{ route('dashboard') }}">
+
+        ← Back to Dashboard
+
+    </a>
+
+</div> -->
 
 {{-- JS --}}
 <script>
@@ -116,13 +229,17 @@ function toggleSave(id, btn)
         if (data.status === 'saved') {
 
             btn.innerHTML = '✅ Saved';
+
             btn.classList.remove('btn-outline-warning');
+
             btn.classList.add('btn-success');
 
         } else {
 
             btn.innerHTML = '⭐ Save Question';
+
             btn.classList.remove('btn-success');
+
             btn.classList.add('btn-outline-warning');
         }
 

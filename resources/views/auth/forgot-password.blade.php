@@ -1,39 +1,69 @@
 <!-- resources/views/auth/forgot-password.blade.php -->
 @extends('layouts.guest')
 
-@section('title', 'Forgot Password - CBT App')
+@section('title', 'Forgot Password - AcademiCore')
 @section('auth-title', 'Reset Password')
 @section('auth-subtitle', 'Enter your email to receive a reset link')
 
 @section('auth-content')
-<!-- Session Status -->
+
 @if (session('status'))
     <div class="alert alert-success mb-4">
-        {{ session('status') }}
+        <i class="fas fa-check-circle me-2"></i>{{ session('status') }}
     </div>
 @endif
 
-<form method="POST" action="{{ route('password.email') }}">
+<form method="POST" action="{{ route('password.email') }}" id="forgotPasswordForm">
     @csrf
 
-    <!-- Email Address -->
-    <div class="mb-3">
-        <label for="email" class="form-label">Email Address</label>
-        <input type="email" class="form-control @error('email') is-invalid @enderror" 
-               id="email" name="email" value="{{ old('email') }}" required autofocus>
-        @error('email')
-            <div class="invalid-feedback">{{ $message }}</div>
-        @enderror
+    <div class="form-group">
+        <label class="form-label">
+            <i class="fas fa-envelope me-2 text-primary"></i>Email Address
+        </label>
+        <div class="input-group">
+            <span class="input-group-text">
+                <i class="fas fa-envelope"></i>
+            </span>
+            <input type="email" name="email" class="form-control @error('email') is-invalid @enderror" 
+                   value="{{ old('email') }}" placeholder="you@example.com" required autofocus>
+            @error('email')
+                <div class="invalid-feedback">{{ $message }}</div>
+            @enderror
+        </div>
     </div>
 
-    <button type="submit" class="btn btn-primary w-100 py-2 mb-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+    <div class="alert alert-info mb-4">
+        <i class="fas fa-info-circle me-2"></i>
+        We'll send a password reset link to your email address.
+    </div>
+
+    <button type="submit" class="btn btn-primary w-100" id="sendResetBtn">
         <i class="fas fa-paper-plane me-2"></i>Send Reset Link
     </button>
 
-    <div class="text-center">
-        <a href="{{ route('login') }}" class="text-decoration-none" style="color: #667eea;">
-            <i class="fas fa-arrow-left me-1"></i>Back to Login
-        </a>
+    <div class="auth-footer mt-4">
+        <p>Remember your password? <a href="{{ route('login') }}">Back to Login</a></p>
     </div>
 </form>
+
+<script>
+document.getElementById('forgotPasswordForm').addEventListener('submit', function(e) {
+    const email = document.querySelector('input[name="email"]').value;
+    
+    if (!email) {
+        e.preventDefault();
+        Swal.fire({
+            icon: 'warning',
+            title: 'Email Required',
+            text: 'Please enter your email address.',
+            confirmButtonColor: '#6f42c1'
+        });
+        return false;
+    }
+    
+    const btn = document.getElementById('sendResetBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending...';
+});
+</script>
 @endsection

@@ -8,8 +8,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Contracts\Auth\CanResetPassword;
+use Illuminate\Auth\Passwords\CanResetPassword as CanResetPasswordTrait;
 
-class User extends Authenticatable
+
+class User extends Authenticatable implements CanResetPassword
 {
     use HasApiTokens, HasFactory, Notifiable;
 
@@ -91,6 +94,16 @@ class User extends Authenticatable
     // App\Models\User.php
     public function isExternal()
     {
-        return $this->exam_type === 'GENERAL';
+        return $this->exam_type === 'EXTERNAL';
+    }
+
+    public function savedQuestions()
+    {
+        return $this->belongsToMany(
+            \App\Models\Question::class,
+            'saved_questions',
+            'student_id',
+            'question_id'
+        );
     }
 }

@@ -18,6 +18,7 @@ class StudentDetail extends Model
         'has_paid',
         'email_sub',
         'payment_reference',
+        'guardian_email',
         'payment_date',
         'payment_expiry',
         'school_id',
@@ -64,4 +65,12 @@ class StudentDetail extends Model
     {
         return is_null($this->school_id);
     }
+
+    // 🔴 ADD THIS RELATIONSHIP 🔴
+    public function schoolClass()
+    {
+        return $this->belongsTo(SchoolClass::class, 'class_id');
+    }
+
+    
 }

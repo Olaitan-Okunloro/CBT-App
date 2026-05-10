@@ -26,88 +26,111 @@ class PracticeController extends Controller
      * Start practice - fetch questions directly
      */
     public function startPractice(Request $request)
-    {
-        $user = auth()->user();
+{
+    $user = auth()->user();
+    
+    $request->validate([
+        'class_id' => 'required|exists:class_levels,id',
+        'subject_id' => 'required|exists:subjects,id',
+        'topic_id' => 'required|exists:topics,id',
+    ]);
+    
+    $classId = $request->class_id;
+    $subjectId = $request->subject_id;
+    $topicId = $request->topic_id;
+    
+    // Debug log
+    \Log::info('Starting practice with:', [
+        'class_id' => $classId,
+        'subject_id' => $subjectId,
+        'topic_id' => $topicId
+    ]);
+    
+    // Fetch questions directly
+    $questions = QuestionBank::where('class_level_id', $classId)
+        ->where('subject_id', $subjectId)
+        ->where('topic_id', $topicId)
+        ->inRandomOrder()
+        ->take(20)
+        ->get();
+    
+    \Log::info('Questions found:', ['count' => $questions->count()]);
+    
+    if ($questions->isEmpty()) {
+        return back()->with('error', 'No questions available for this topic yet.');
+    }
+    
+    // Store in session with explicit array conversion
+    session([
+        'practice_questions' => $questions,  // Store entire collection
+        'practice_total' => $questions->count(),
+        'practice_current_index' => 0,
+        'practice_class_id' => $classId,
+        'practice_subject_id' => $subjectId,
+        'practice_topic_id' => $topicId
+    ]);
+    
+    // Debug: Verify session was set
+    \Log::info('Session set:', [
+        'total' => session('practice_total'),
+        'questions_exists' => session('practice_questions') ? 'Yes' : 'No'
+    ]);
+    
+    return redirect()->route('student.external.practice.show');
+}
+    
+    /**
+     * Show current question
+     */
+    public function showQuestion()
+{
+    // Debug: Log session data
+    \Log::info('Session Data:', [
+        'practice_questions' => session('practice_questions'),
+        'practice_total' => session('practice_total'),
+        'practice_current_index' => session('practice_current_index'),
+        'has_questions' => session('practice_questions') ? 'Yes' : 'No'
+    ]);
+    
+    $questions = session('practice_questions');
+    $currentIndex = session('practice_current_index', 0);
+    $total = session('practice_total', 0);
+    
+    // If no questions in session, try to fetch from database using stored parameters
+    if (!$questions || $currentIndex >= $total) {
+        // Try to restore from database
+        $classId = session('practice_class_id');
+        $subjectId = session('practice_subject_id');
+        $topicId = session('practice_topic_id');
         
-        $request->validate([
-            'class_id' => 'required|exists:class_levels,id',
-            'subject_id' => 'required|exists:subjects,id',
-            'topic_id' => 'required|exists:topics,id',
-        ]);
-        
-        $classId = $request->class_id;
-        $subjectId = $request->subject_id;
-        $topicId = $request->topic_id;
-        
-        // Get previously answered correct question IDs
-        $correctQuestionIds = StudentQuestionAttempt::where('student_id', $user->id)
-            ->where('topic_id', $topicId)
-            ->where('is_correct', 1)
-            ->pluck('question_id')
-            ->toArray();
-        
-        // Fetch questions directly from question_banks
-        $questions = QuestionBank::where('class_level_id', $classId)
-            ->where('subject_id', $subjectId)
-            ->where('topic_id', $topicId)
-            ->when(!empty($correctQuestionIds), function($query) use ($correctQuestionIds) {
-                return $query->whereNotIn('id', $correctQuestionIds);
-            })
-            ->inRandomOrder()
-            ->take(20)
-            ->get();
-        
-        // If all questions were answered correctly, reset and get all questions
-        if ($questions->isEmpty()) {
-            // Reset attempts for this topic
-            StudentQuestionAttempt::where('student_id', $user->id)
-                ->where('topic_id', $topicId)
-                ->delete();
-            
-            // Fetch all questions again
+        if ($classId && $subjectId && $topicId) {
             $questions = QuestionBank::where('class_level_id', $classId)
                 ->where('subject_id', $subjectId)
                 ->where('topic_id', $topicId)
                 ->inRandomOrder()
                 ->take(20)
                 ->get();
+            
+            if ($questions->isNotEmpty()) {
+                session([
+                    'practice_questions' => $questions,
+                    'practice_total' => $questions->count(),
+                    'practice_current_index' => 0
+                ]);
+                
+                $question = $questions[0];
+                return view('student.external.practice-question', compact('question', 'currentIndex', 'total'));
+            }
         }
         
-        if ($questions->isEmpty()) {
-            return back()->with('error', 'No questions available for this topic yet.');
-        }
-        
-        // Store in session for tracking
-        session([
-            'practice_questions' => $questions,
-            'practice_total' => $questions->count(),
-            'practice_current_index' => 0,
-            'practice_class_id' => $classId,
-            'practice_subject_id' => $subjectId,
-            'practice_topic_id' => $topicId
-        ]);
-        
-        return redirect()->route('student.external.practice.show');
+        return redirect()->route('student.practice.dashboard')
+            ->with('error', 'Practice session expired. Please start a new practice session.');
     }
     
-    /**
-     * Show current question
-     */
-    public function showQuestion()
-    {
-        $questions = session('practice_questions');
-        $currentIndex = session('practice_current_index', 0);
-        $total = session('practice_total', 0);
-        
-        if (!$questions || $currentIndex >= $total) {
-            return redirect()->route('student.practice.dashboard')
-                ->with('success', 'Practice completed! You have answered all questions.');
-        }
-        
-        $question = $questions[$currentIndex];
-        
-        return view('student.external.practice-question', compact('question', 'currentIndex', 'total'));
-    }
+    $question = $questions[$currentIndex];
+    
+    return view('student.external.practice-question', compact('question', 'currentIndex', 'total'));
+}
     
     /**
      * Submit answer

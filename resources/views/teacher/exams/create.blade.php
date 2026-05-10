@@ -126,6 +126,7 @@
                                                 </span>
                                                 <select name="exams[0][score_type]" class="form-select" required>
                                                     <option value="">Select Type</option>
+                                                    <option value="cbt_practice">CBT Practice</option>
                                                     <option value="first_ca">First CA Test</option>
                                                     <option value="second_ca">Second CA Test</option>
                                                     <option value="exam">Examination</option>

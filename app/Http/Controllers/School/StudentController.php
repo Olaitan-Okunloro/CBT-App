@@ -23,21 +23,6 @@ class StudentController extends Controller
 {
     public function dashboard()
     {
-        $announcements = \App\Models\Announcement::where(
-            'status',
-            'active'
-        )
-        ->where(function ($q) {
-
-            $q->where('audience', 'all')
-              ->orWhere(
-                  'audience',
-                  auth()->user()->role
-              );
-        })
-        ->latest()
-        ->take(5)
-        ->get();
         
         $user = auth()->user();
 
@@ -57,8 +42,7 @@ class StudentController extends Controller
             'averageScore',
             'highestScore',
             'attempts',
-            'subjectStats',
-            'announcements'
+            'subjectStats'
         ));
     }
     
@@ -74,55 +58,86 @@ class StudentController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'name' => 'required',
-            'email' => 'required|email|unique:users',
-            'class_id' => 'required',
-            'phone' => 'required',
+            'students' => 'required|array|min:1',
+            'students.*.name' => 'required|string|max:255',
+            'students.*.email' => 'required|email|unique:users,email',
+            'students.*.parent_email' => 'required|email',
+            'students.*.phone' => 'required|string|max:20',
+            'students.*.class_id' => 'required|exists:classes,id',
         ]);
 
-        // Get logged-in school ID
-        $schoolId = auth()->user()->schoolDetail->school_id;
+        // Get logged-in school details
+        $schoolDetail = auth()->user()->schoolDetail;
+        $school = $schoolDetail->school;
+        $schoolId = $school->id;
+        
+        $password = 'password123'; // Default password
+        $successCount = 0;
+        $errors = [];
 
-        // Create user account
-        // $password = Str::random(8);
-        $password = 'password123';
+        foreach ($request->students as $index => $studentData) {
+            try {
+                // Check if email already exists
+                $existingUser = User::where('email', $studentData['email'])->exists();
+                if ($existingUser) {
+                    $errors[] = "Student " . ($index + 1) . " ({$studentData['email']}) already exists.";
+                    continue;
+                }
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($password),
-            'phone' => $request->phone,
-            'role' => 'student',
-            'exam_type' => 'GENERAL',
-            'is_active' => true
-        ]);
+                // Create user account
+                $user = User::create([
+                    'name' => $studentData['name'],
+                    'email' => $studentData['email'],
+                    'password' => Hash::make($password),
+                    'phone' => $studentData['phone'],
+                    'role' => 'student',
+                    'exam_type' => 'GENERAL',
+                    'is_active' => true
+                ]);
 
-        // Send Email
-        Mail::to($user->email)->send(new UserCreatedMail($user, $password));
+                // Send Email (optional - can be disabled for bulk upload)
+                try {
+                    Mail::to($user->email)->send(new UserCreatedMail($user, $password));
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send email to: ' . $user->email);
+                }
 
-        $school = auth()->user()->schoolDetail->school;
+                // Find teacher for this class
+                $teacher = \App\Models\TeacherDetail::where('class_id', $studentData['class_id'])
+                    ->where('school_id', $schoolId)
+                    ->first();
 
-        $teacher = \App\Models\TeacherDetail::where('class_id', $request->class_id)
-        ->where('school_id', $schoolId)
-        ->first();
+                $hasPaid = $school->payment_plan === 'paid' ? true : false;
+                $schoolReferrer = \App\Models\School::where('id', $schoolId)->first();
 
-        $hasPaid = $school->payment_plan === 'paid' ? true : false;
+                // Create student details
+                StudentDetail::create([
+                    'user_id' => $user->id,
+                    'registration_number' => 'STU' . strtoupper(Str::random(8)),
+                    'school_id' => $schoolId,
+                    'class_id' => $studentData['class_id'],
+                    'teacher_id' => $teacher ? $teacher->user_id : null,
+                    'has_paid' => $hasPaid,
+                    'guardian_email' => $studentData['parent_email'],
+                    'referrer_code_used' => $schoolReferrer->referrer_code_used ?? null,
+                    'referral_user_id' => $schoolReferrer->referral_user_id ?? null
+                ]);
 
+                $successCount++;
 
-        $school_referrer = \App\Models\School::where('id', $schoolId)->first();
+            } catch (\Exception $e) {
+                $errors[] = "Student " . ($index + 1) . " ({$studentData['name']}) failed: " . $e->getMessage();
+            }
+        }
 
-        StudentDetail::create([
-            'user_id' => $user->id,
-            'registration_number' => 'STU'.strtoupper(Str::random(8)),
-            'school_id' => $school->id,
-            'class_id' => $request->class_id,
-            'teacher_id' => $teacher ? $teacher->user_id : null,
-            'has_paid' => false,
-            'referrer_code_used' => $school_referrer->referrer_code_used,
-            'referral_user_id' => $school_referrer->referral_user_id
-        ]);
+        $message = "$successCount student(s) created successfully!";
+        
+        if (!empty($errors)) {
+            $message .= " Errors: " . implode('; ', $errors);
+            return redirect()->back()->with('warning', $message);
+        }
 
-        return back()->with('success','Student created successfully');
+        return redirect()->route('school.students')->with('success', $message);
     }
 
     // import bulk records
@@ -455,9 +470,6 @@ class StudentController extends Controller
 
         $user = auth()->user();
 
-        // option 1: save on users table
-        // $user->class_id = $request->class_id;
-        // $user->save();
 
         // option 2 (if you prefer student_details)
         if ($user->studentDetail) {

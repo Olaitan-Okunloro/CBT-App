@@ -22,21 +22,6 @@ class SchoolController extends Controller
 
     public function dashboard()
     {
-        $announcements = \App\Models\Announcement::where(
-            'status',
-            'active'
-        )
-        ->where(function ($q) {
-
-            $q->where('audience', 'all')
-              ->orWhere(
-                  'audience',
-                  auth()->user()->role
-              );
-        })
-        ->latest()
-        ->take(5)
-        ->get();
 
         $user = auth()->user();
         $schoolDetail = $user->schoolDetail;
@@ -76,8 +61,7 @@ class SchoolController extends Controller
             'classes',  // Now this is a count, not a collection
             'recentTeachers', 
             'recentStudents',
-            'school',
-            'announcements'
+            'school'
         ));
     }
     

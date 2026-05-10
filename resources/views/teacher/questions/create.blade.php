@@ -1,4 +1,3 @@
-<!-- resources/views/teacher/questions/create.blade.php -->
 @extends('layouts.app')
 
 @section('title', 'Create Questions')
@@ -18,6 +17,61 @@
                     <form method="POST" action="{{ route('teacher.questions.store') }}" id="questionForm">
                         @csrf
 
+                        <!-- GLOBAL FIELDS (Declared Once) -->
+                        <div class="card mb-4 border-left-primary">
+                            <div class="card-header bg-light">
+                                <h5 class="mb-0 text-primary">
+                                    <i class="fas fa-cog me-2"></i>Exam Settings
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Exam Category <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-info text-white">
+                                                <i class="fas fa-layer-group"></i>
+                                            </span>
+                                            <select name="exam_cat_id" class="form-select" id="exam_cat_id" required>
+                                                <option value="">Select Exam Category</option>
+                                                @foreach($categories as $cat)
+                                                <option value="{{ $cat->id }}">{{ $cat->category }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Subject <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-success text-white">
+                                                <i class="fas fa-book"></i>
+                                            </span>
+                                            <select name="subject_id" class="form-select" id="subject_id" required>
+                                                <option value="">Select Subject</option>
+                                                @foreach($subjects as $subject)
+                                                <option value="{{ $subject->id }}">{{ $subject->name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Topic <span class="text-danger">*</span></label>
+                                        <div class="input-group">
+                                            <span class="input-group-text bg-warning text-dark">
+                                                <i class="fas fa-list-ul"></i>
+                                            </span>
+                                            <select name="topic_id" class="form-select" id="topic_id" required>
+                                                <option value="">Select Subject First</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Questions Wrapper -->
                         <div id="questions-wrapper">
                             <!-- Question Block 0 (Initial) -->
                             <div class="question-block card mb-4 border-left-primary" data-index="0">
@@ -47,15 +101,6 @@
                                         </div>
                                     </div>
 
-                                    <div class="mb-3">
-                                        <label style="color: white">Subject</label>
-                                        <select name="subject_id" class="form-control">
-                                            @foreach($subjects as $subject)
-                                            <option value="{{ $subject->id }}">{{ $subject->name }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-
                                     <!-- Question Text -->
                                     <div class="mb-3">
                                         <label class="form-label fw-bold">Question Text <span class="text-danger">*</span></label>
@@ -69,7 +114,6 @@
                                     <!-- Objective Section (Multiple Choice) -->
                                     <div class="objective-section">
                                         <div class="row">
-                                            <!-- Option A -->
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label fw-bold">Option A <span class="text-danger">*</span></label>
                                                 <div class="input-group">
@@ -81,7 +125,6 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Option B -->
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label fw-bold">Option B <span class="text-danger">*</span></label>
                                                 <div class="input-group">
@@ -93,7 +136,6 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Option C -->
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label fw-bold">Option C <span class="text-danger">*</span></label>
                                                 <div class="input-group">
@@ -105,7 +147,6 @@
                                                 </div>
                                             </div>
 
-                                            <!-- Option D -->
                                             <div class="col-md-6 mb-3">
                                                 <label class="form-label fw-bold">Option D <span class="text-danger">*</span></label>
                                                 <div class="input-group">
@@ -218,6 +259,44 @@
 <script>
 let questionCount = 1;
 
+// Load topics based on selected subject
+document.addEventListener('DOMContentLoaded', function() {
+    const subjectSelect = document.getElementById('subject_id');
+    const topicSelect = document.getElementById('topic_id');
+    
+    function loadTopics() {
+        const subjectId = subjectSelect.value;
+        
+        if (!subjectId) {
+            topicSelect.innerHTML = '<option value="">Select Subject First</option>';
+            return;
+        }
+        
+        topicSelect.innerHTML = '<option value="">Loading topics...</option>';
+        
+        fetch(`/get-topics/${subjectId}`)
+            .then(response => response.json())
+            .then(data => {
+                let options = '<option value="">Select Topic</option>';
+                data.forEach(topic => {
+                    options += `<option value="${topic.id}">${topic.name || topic.topic}</option>`;
+                });
+                topicSelect.innerHTML = options;
+            })
+            .catch(error => {
+                console.error('Error loading topics:', error);
+                topicSelect.innerHTML = '<option value="">Error loading topics</option>';
+            });
+    }
+    
+    subjectSelect.addEventListener('change', loadTopics);
+    
+    // Load topics if subject is pre-selected
+    if (subjectSelect.value) {
+        loadTopics();
+    }
+});
+
 /**
  * Toggle question type (OBJECTIVE vs FILL GAP)
  */
@@ -238,46 +317,33 @@ function applyQuestionTypeState(block, type) {
     const expectedAnswer = block.querySelector('.expected-answer');
 
     if (type === 'fill_in_the_gap') {
-        // Show/Hide
         objectiveSection.style.display = 'none';
         fillGapSection.style.display = 'block';
-
-        // Disable objective inputs
         optionInputs.forEach(input => {
             input.disabled = true;
             input.removeAttribute('required');
-            input.value = ''; // clean old values
+            input.value = '';
         });
-
         if (correctAnswer) {
             correctAnswer.disabled = true;
             correctAnswer.removeAttribute('required');
             correctAnswer.value = '';
         }
-
-        // Enable expected answer
         if (expectedAnswer) {
             expectedAnswer.disabled = false;
             expectedAnswer.setAttribute('required', 'required');
         }
-
     } else {
-        // Show/Hide
         objectiveSection.style.display = 'block';
         fillGapSection.style.display = 'none';
-
-        // Enable objective inputs
         optionInputs.forEach(input => {
             input.disabled = false;
             input.setAttribute('required', 'required');
         });
-
         if (correctAnswer) {
             correctAnswer.disabled = false;
             correctAnswer.setAttribute('required', 'required');
         }
-
-        // Disable expected answer
         if (expectedAnswer) {
             expectedAnswer.disabled = true;
             expectedAnswer.removeAttribute('required');
@@ -294,40 +360,92 @@ function addQuestion() {
 
     let html = `
     <div class="question-block card mb-4 border-left-primary fade-in" data-index="${index}">
-        <div class="card-header d-flex justify-content-between">
-            <h5>Question ${index + 1}</h5>
-            <button type="button" class="btn btn-danger btn-sm remove-question">Remove</button>
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <h5 class="mb-0 text-primary">
+                <i class="fas fa-question-circle me-2"></i>Question ${index + 1}
+            </h5>
+            <button type="button" class="btn btn-sm btn-danger remove-question">
+                <i class="fas fa-trash-alt me-1"></i>Remove
+            </button>
         </div>
-
         <div class="card-body">
-
-            <select name="questions[${index}][question_type]" 
-                    class="form-select question-type" required>
-                <option value="objective">Objective</option>
-                <option value="fill_in_the_gap">Fill in the Gap</option>
-            </select>
-
-            <textarea name="questions[${index}][question_text]" 
-                      class="form-control mt-2" required></textarea>
-
-            <!-- OBJECTIVE -->
-            <div class="objective-section mt-3">
-                <input type="text" name="questions[${index}][option_a]" class="form-control option-input mb-2" placeholder="Option A" required>
-                <input type="text" name="questions[${index}][option_b]" class="form-control option-input mb-2" placeholder="Option B" required>
-                <input type="text" name="questions[${index}][option_c]" class="form-control option-input mb-2" placeholder="Option C" required>
-                <input type="text" name="questions[${index}][option_d]" class="form-control option-input mb-2" placeholder="Option D" required>
-
-                <select name="questions[${index}][correct_answer]" class="form-select correct-answer-select" required>
-                    <option value="">Correct Answer</option>
-                    <option>A</option><option>B</option><option>C</option><option>D</option>
-                </select>
+            <!-- Question Type -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Question Type <span class="text-danger">*</span></label>
+                <div class="input-group">
+                    <span class="input-group-text bg-info text-white">
+                        <i class="fas fa-tag"></i>
+                    </span>
+                    <select name="questions[${index}][question_type]" class="form-select question-type" required>
+                        <option value="objective">Objective (Multiple Choice)</option>
+                        <option value="fill_in_the_gap">Fill in the Gap</option>
+                    </select>
+                </div>
             </div>
 
-            <!-- GAP -->
-            <div class="fill-gap-section mt-3" style="display:none;">
-                <input type="text" name="questions[${index}][expected_answer]" 
-                       class="form-control expected-answer" 
-                       placeholder="Expected Answer">
+            <!-- Question Text -->
+            <div class="mb-3">
+                <label class="form-label fw-bold">Question Text <span class="text-danger">*</span></label>
+                <textarea name="questions[${index}][question_text]" class="form-control" rows="3" placeholder="Enter your question here..." required></textarea>
+            </div>
+
+            <!-- OBJECTIVE SECTION -->
+            <div class="objective-section">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Option A <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-primary text-white">A</span>
+                            <input type="text" name="questions[${index}][option_a]" class="form-control option-input" placeholder="Enter option A">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Option B <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-success text-white">B</span>
+                            <input type="text" name="questions[${index}][option_b]" class="form-control option-input" placeholder="Enter option B">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Option C <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-info text-white">C</span>
+                            <input type="text" name="questions[${index}][option_c]" class="form-control option-input" placeholder="Enter option C">
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Option D <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-warning text-dark">D</span>
+                            <input type="text" name="questions[${index}][option_d]" class="form-control option-input" placeholder="Enter option D">
+                        </div>
+                    </div>
+                </div>
+                <div class="mb-3 correct-answer-section">
+                    <label class="form-label fw-bold">Correct Answer <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-success text-white"><i class="fas fa-check-circle"></i></span>
+                        <select name="questions[${index}][correct_answer]" class="form-select correct-answer-select" required>
+                            <option value="">Select correct answer</option>
+                            <option value="A">A</option>
+                            <option value="B">B</option>
+                            <option value="C">C</option>
+                            <option value="D">D</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FILL GAP SECTION -->
+            <div class="fill-gap-section" style="display: none;">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Expected Answer <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-success text-white"><i class="fas fa-key"></i></span>
+                        <input type="text" name="questions[${index}][expected_answer]" class="form-control expected-answer" placeholder="Enter the correct answer for the gap">
+                    </div>
+                    <small class="text-muted">Example: "Lagos" or "Nigeria"</small>
+                </div>
             </div>
         </div>
     </div>
@@ -336,16 +454,16 @@ function addQuestion() {
     document.getElementById('questions-wrapper').insertAdjacentHTML('beforeend', html);
 
     const newBlock = document.querySelector(`.question-block[data-index="${index}"]`);
-
-    // Attach event
+    
+    // Attach change event to new question type
     newBlock.querySelector('.question-type')
-        .addEventListener('change', function () {
+        .addEventListener('change', function() {
             applyQuestionTypeState(newBlock, this.value);
         });
 
-    // Remove button
+    // Remove button event
     newBlock.querySelector('.remove-question')
-        .addEventListener('click', function () {
+        .addEventListener('click', function() {
             newBlock.remove();
             renumberQuestions();
         });
@@ -361,10 +479,8 @@ function addQuestion() {
  */
 function renumberQuestions() {
     const blocks = document.querySelectorAll('.question-block');
-
     blocks.forEach((block, i) => {
         block.setAttribute('data-index', i);
-
         const inputs = block.querySelectorAll('input, textarea, select');
         inputs.forEach(input => {
             const name = input.name;
@@ -372,24 +488,27 @@ function renumberQuestions() {
                 input.name = name.replace(/questions\[\d+\]/, `questions[${i}]`);
             }
         });
-
-        const title = block.querySelector('h5');
-        if (title) title.textContent = `Question ${i + 1}`;
+        const title = block.querySelector('.card-header h5');
+        if (title) title.innerHTML = `<i class="fas fa-question-circle me-2"></i>Question ${i + 1}`;
     });
-
     questionCount = blocks.length;
 }
 
 /**
- * Form submit (SAFE)
+ * Form submit
  */
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function() {
     const form = document.getElementById('questionForm');
+    const firstBlock = document.querySelector('.question-block');
+    
+    if (firstBlock) {
+        const select = firstBlock.querySelector('.question-type');
+        applyQuestionTypeState(firstBlock, select ? select.value : 'objective');
+    }
 
     if (!form) return;
 
-    form.addEventListener('submit', function (e) {
-
+    form.addEventListener('submit', function(e) {
         if (!form.checkValidity()) {
             e.preventDefault();
             form.reportValidity();
@@ -398,7 +517,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         if (typeof Swal !== 'undefined') {
             e.preventDefault();
-
             Swal.fire({
                 title: 'Save Questions?',
                 icon: 'question',
@@ -409,12 +527,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             });
         }
-    });
-
-    // Initialize FIRST question properly
-    document.querySelectorAll('.question-block').forEach(block => {
-        const select = block.querySelector('.question-type');
-        applyQuestionTypeState(block, select.value);
     });
 });
 </script>

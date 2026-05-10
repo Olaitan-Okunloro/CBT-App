@@ -5,9 +5,45 @@ namespace App\Http\Controllers\Teacher;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Question;
+use App\Models\Subject;
+use App\Models\SchoolClass;
+use App\Models\ExamCategory;
+
+use Illuminate\Support\Facades\DB;
 
 class QuestionBankController extends Controller
 {
+    public function index()
+    {
+        $subjects = Subject::all();
+
+        $categories = ExamCategory::all();
+
+        $teacher = DB::table('teacher_details')
+            ->where('user_id', auth()->id())
+            ->first();
+
+        if (!$teacher) {
+            return back()->with(
+                'error',
+                'Teacher profile not found'
+            );
+        }
+
+        $classes = SchoolClass::with('classLevel')
+            ->where('school_id', $teacher->school_id)
+            ->get()
+            ->map(fn($row) => (object) [
+                'id'   => $row->class_level_id,
+                'name' => $row->classLevel->name ?? 'N/A'
+            ]);
+
+        return view(
+            'teacher.questions.ai-generator',
+            compact('subjects', 'classes', 'categories')
+        );
+    }
+
     public function generatePreview(Request $request)
     {
         $teacher = auth()->user()->teacherDetail;
@@ -122,6 +158,40 @@ class QuestionBankController extends Controller
         );
 
         $teacher = auth()->user()->teacherDetail;
+
+        // --------------------------------------------------
+        // DELETE OLD GENERATED QUESTIONS + OPTIONS
+        // --------------------------------------------------
+
+        if ($request->exam_cat_id == 1) {
+
+            // GET OLD QUESTION IDS
+            $oldQuestionIds = \App\Models\Question::where(
+                    'created_by',
+                    auth()->id()
+                )
+                ->where(
+                    'exam_cat_id',
+                    1
+                )
+                ->where(
+                    'subject_id',
+                    $request->subject_id
+                )
+                ->pluck('id');
+
+            // DELETE OPTIONS FIRST
+            \App\Models\TeacherOption::whereIn(
+                'question_id',
+                $oldQuestionIds
+            )->delete();
+
+            // DELETE QUESTIONS
+            \App\Models\Question::whereIn(
+                'id',
+                $oldQuestionIds
+            )->delete();
+        }
 
         if (!$teacher) {
             return back()->with(

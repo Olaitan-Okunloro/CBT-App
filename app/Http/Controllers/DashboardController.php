@@ -6,6 +6,8 @@ namespace App\Http\Controllers;
 use App\Models\User;
 use App\Models\Withdrawal;
 use App\Models\Question;
+use App\Models\Subject;
+use App\Models\Topic;
 use App\Models\StudentDetail;
 use App\Models\TeacherDetail;
 use App\Models\ExamAttempt;
@@ -614,5 +616,19 @@ class DashboardController extends Controller
             'success',
             'Question deleted'
         );
+    }
+
+    public function subjectTopicRecord()
+    {
+        // Get subjects with their topics count
+        $subjects = Subject::withCount('topic')->get();
+        
+        // Get all topics with their subjects and question count (with pagination)
+        $topics = Topic::with('subject')
+            ->withCount('questionBanks')
+            ->orderBy('subject_id')
+            ->paginate(10); // 10 topics per page
+        
+        return view('admin.subject-topic-record', compact('subjects', 'topics'));
     }
 }

@@ -54,13 +54,27 @@
         </div>
     </div>
 
-    <!-- Remember Me & Forgot Password Row -->
+    <!-- Remember Me & Forgot Password Row
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div class="form-check">
             <input class="form-check-input" type="checkbox" name="remember" id="remember_me">
             <label class="form-check-label" for="remember_me">
                 <i class="fas fa-clock me-1 text-muted"></i>Remember me
             </label>
+        </div>
+        
+        @if (Route::has('password.request'))
+            <a href="{{ route('password.request') }}" class="text-decoration-none small">
+                <i class="fas fa-question-circle me-1"></i>Forgot Password?
+            </a>
+        @endif
+    </div> -->
+
+    <!-- In your login.blade.php, add this link -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="remember" id="remember_me">
+            <label class="form-check-label" for="remember_me">Remember me</label>
         </div>
         
         @if (Route::has('password.request'))

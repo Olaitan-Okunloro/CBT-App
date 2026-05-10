@@ -5,50 +5,25 @@
 @section('content')
 <div class="container">
 
-    @if($announcements->count())
-
-        <div class="card shadow-sm border-0 mb-4">
-
-            <div class="card-header bg-danger text-white d-flex justify-content-between align-items-center">
-
-                <div>
-                    <i class="fas fa-bullhorn me-2"></i>
-                    Announcements
-                </div>
-
-                <small>
-                    Latest Updates
-                </small>
-
-            </div>
-
-            <div class="card-body">
-
-                @foreach($announcements as $row)
-
-                    <div class="border-bottom mb-3 pb-3">
-
-                        <h6 class="fw-bold mb-1">
-                            {{ $row->title }}
-                        </h6>
-
-                        <p class="mb-1 text-muted">
-                            {{ $row->message }}
-                        </p>
-
-                        <small class="text-secondary">
-                            {{ $row->created_at->diffForHumans() }}
-                        </small>
-
-                    </div>
-
-                @endforeach
-
-            </div>
-
+        {{-- 
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-danger text-white">
+            <i class="fas fa-bullhorn me-2"></i>
+            Announcements
         </div>
+        <div class="card-body">
+            @foreach($announcements as $row)
+                <div class="border-bottom mb-3 pb-2">
+                    <h6 class="mb-1">{{ $row->title }}</h6>
+                    <p class="mb-1">{{ $row->message }}</p>
+                    <small class="text-white">{{ $row->created_at->diffForHumans() }}</small>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    --}}
 
-    @endif
+    <!-- The modal will now popup automatically -->
 
     <div class="d-flex justify-content-between align-items-center mb-4">
 
