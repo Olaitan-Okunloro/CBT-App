@@ -36,7 +36,8 @@
 
         .navbar-purple {
 
-            background: rgba(111, 66, 193, 0.92) !important;
+            /* background: rgba(111, 66, 193, 0.92) !important; */
+            background: hsl(300, 100%, 25%) !important;
 
             backdrop-filter: blur(10px);
 
@@ -94,16 +95,16 @@
             background: linear-gradient(135deg, #6f42c1 0%, #8a5cf6 100%);
             color: white;
         }
+
+        /* .navbar-purple .dropdown-item:hover {
+            background: linear-gradient(135deg, #6f42c1 0%, #8a5cf6 100%);
+            color: white;
+        } */
         
         .navbar-purple .dropdown-item i {
             width: 20px;
             margin-right: 10px;
         }
-        
-        /* .main-content {
-            min-height: calc(100vh - 160px);
-            padding: 20px 0;
-        } */
 
         .main-content {
 
@@ -280,18 +281,18 @@
                                     <i class="fas fa-chart-line me-2"></i>Practice Dashboard
                                 </a>
                             </li>
-
+                            <li>
+                                <a class="dropdown-item" href="{{ route('student.analytics') }}">
+                                    <i class="fas fa-chart-line me-2"></i>Analytics
+                                </a>
+                            </li>
+                            
                             @if($isExternal)
                             <li>
                                 <a class="dropdown-item" href="{{ route('student.practice.page') }}">
                                     <i class="fas fa-chart-line me-2"></i>Start Practice
                                 </a>
                             </li>
-                            <!-- <li>
-                                <a class="dropdown-item" href="{{ route('student.practice.dashboard') }}">
-                                    <i class="fas fa-chart-line me-2"></i>Practice Dashboard
-                                </a>
-                            </li> -->
                             @endif
                             <li>
                                 <a class="dropdown-item" href="{{ route('student.saved.questions') }}">
@@ -330,7 +331,7 @@
                             </li>
                             @endisset
 
-                            <li>
+                            <!-- <li>
                                 <a class="dropdown-item" href="{{ route('student.school.fees') }}">
                                     <i class="fas fa-credit-card me-2"></i>Payment
                                 </a>
@@ -340,7 +341,7 @@
                                 <a class="dropdown-item" href="{{ route('student.fees.history') }}">
                                     <i class="fas fa-clock me-2"></i>Payment History
                                 </a>
-                            </li>
+                            </li> -->
 
                             @endif
 
@@ -361,8 +362,19 @@
                             <i class="fas fa-credit-card me-1"></i>Payment
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ route('student.school.fees') }}">Add Payment</a></li>
-                            <li><a class="dropdown-item" href="{{ route('student.fees.history') }}">History</a></li>
+                            <!-- <li><a class="dropdown-item" href="{{ route('student.school.fees') }}">Add Payment</a></li>
+                            <li><a class="dropdown-item" href="{{ route('student.fees.history') }}">History</a></li> -->
+                            <li>
+                                <a class="dropdown-item" href="{{ route('student.school.fees') }}">
+                                    <i class="fas fa-credit-card me-2"></i>Payment
+                                </a>
+                            </li>
+
+                            <li>
+                                <a class="dropdown-item" href="{{ route('student.fees.history') }}">
+                                    <i class="fas fa-clock me-2"></i>Payment History
+                                </a>
+                            </li>
                         </ul>
                     </li>
                     @endif
@@ -405,6 +417,7 @@
                             <li><a class="dropdown-item" href="{{ route('attendance.dashboard') }}"><i class="fas fa-chart-line me-2"></i>Attendance Dashboard</a></li>
                             <li><a class="dropdown-item" href="{{ route('students.face.list') }}"><i class="fas fa-user-check me-2"></i>Student Face Registration</a></li>
                             <li><a class="dropdown-item" href="{{ route('attendance.face.scan') }}"><i class="fas fa-camera me-2"></i>Face Attendance Scan</a></li>
+                            <li><a class="dropdown-item" href="{{ route('notifications.create') }}"><i class="fas fa-paper-plane me-2"></i>Send Notifications</a></li>
                         </ul>
                     </li>
                     @endif
@@ -424,9 +437,12 @@
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{{ route('school.students') }}"><i class="fas fa-user-graduate me-2"></i>Students</a></li>
                             <li><a class="dropdown-item" href="{{ route('school.student.create') }}"><i class="fas fa-plus me-2"></i>Add Student</a></li>
-                            <li><a class="dropdown-item" href="{{ route('school.students.import') }}"><i class="fas fa-upload me-2"></i>Upload Students</a></li>
+                            <li><a class="dropdown-item" href="{{ route('school.students.face.list') }}"><i class="fas fa-chart-line me-2"></i>Face Registration</a></li>
                             <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item" href="{{ route('classes.index') }}"><i class="fas fa-plus me-2"></i>Classes</a></li>
                             <li><a class="dropdown-item" href="{{ route('classes.create') }}"><i class="fas fa-plus me-2"></i>Add Class</a></li>
+                            <li><a class="dropdown-item" href="{{ route('school.students.import') }}"><i class="fas fa-upload me-2"></i>Upload Students</a></li>
+                            <!-- <li><a class="dropdown-item" href="{{ route('school.attendance.face.scan') }}"><i class="fas fa-chart-line me-2"></i>Scan Face</a></li> -->
                         </ul>
                     </li>
 
@@ -438,6 +454,7 @@
                             <li><a class="dropdown-item" href="{{ route('bulk.payment') }}"><i class="fas fa-credit-card me-2"></i>Bulk Payment</a></li>
                             <li><a class="dropdown-item" href="{{ route('school.fees') }}"><i class="fas fa-credit-card me-2"></i>Add School Fees</a></li>
                             <li><a class="dropdown-item" href="{{ route('school.fees.payments') }}"><i class="fas fa-hand-holding-usd me-2"></i>School Fees Payments</a></li>
+                            <li><a class="dropdown-item" href="{{ route('school.finance.dashboard') }}"><i class="fas fa-chart-line me-2"></i>Financial Analytics</a></li>
                         </ul>
                     </li>
 
@@ -447,7 +464,10 @@
                         </a>
                         <ul class="dropdown-menu">
                             <li><a class="dropdown-item" href="{{ route('school.results.manage') }}"><i class="fas fa-chart-simple me-2"></i>Release Results</a></li>
+                            <li><a class="dropdown-item" href="{{ route('school.results.remarks') }}"><i class="fas fa-chart-simple me-2"></i>Results Remarks</a></li>
                             <li><a class="dropdown-item" href="{{ route('school.promotion') }}"><i class="fas fa-crown me-2"></i>Promote Students</a></li>
+                            <li><a class="dropdown-item" href="{{ route('school.questions') }}"><i class="fas fa-plus me-2"></i>Questions</a></li>
+                            <li><a class="dropdown-item" href="{{ route('notifications.create') }}"><i class="fas fa-paper-plane me-2"></i>Send Notifications</a></li>
                         </ul>
                     </li>
                     @endif
@@ -488,19 +508,72 @@
                             <i class="fas fa-question-circle me-1"></i>Questions
                         </a>
                         <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="{{ route('admin.ai.generator') }}"><i class="fas fa-robot me-2"></i>AI Question Generator</a></li>
-                            <li><a class="dropdown-item" href="{{ route('admin.qb') }}"><i class="fas fa-database me-2"></i>Question Bank</a></li>
-                            <li><a class="dropdown-item" href="{{ route('admin.subject.topic.record') }}"><i class="fas fa-database me-2"></i>All Subjects</a></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ route('admin.ai.generator') }}">
+                                    <i class="fas fa-robot me-2"></i>AI Question Generator
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ route('admin.qb') }}">
+                                    <i class="fas fa-database me-2"></i>Question Bank
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ route('admin.subject.topic.record') }}">
+                                    <i class="fas fa-database me-2"></i>Subjects Record
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ route('admin.topics.bulk-upload') }}">
+                                    <i class="fas fa-upload me-1"></i>Bulk Upload Topics
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="adminQuestionsDropdown" role="button" data-bs-toggle="dropdown">
+                            <i class="fas fa-question-circle me-1"></i>Payment
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a class="dropdown-item" href="{{ route('admin.withdrawals') }}">
+                                    <i class="fas fa-money-bill-wave me-2"></i>Withdrawal
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ route('admin.withdraw.history') }}">
+                                    <i class="fas fa-money-bill-wave me-2"></i>Withdrawal History
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ route('admin.subject.topic.record') }}">
+                                    <i class="fas fa-database me-2"></i>Subjects Record
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="{{ route('admin.topics.bulk-upload') }}">
+                                    <i class="fas fa-upload me-1"></i>Bulk Upload Topics
+                                </a>
+                            </li>
                         </ul>
                     </li>
                     @endif
                 </ul>
 
-                
+                 @if(!$isExternal)
+                    <a class="nav-link text-white" href="{{ route('notifications.index') }}">
+                        <i class="fas fa-bell me-1"></i>
+                        
+                        @if(isset($unreadCount) && $unreadCount > 0)
+                            <span class="badge bg-danger">{{ $unreadCount }}</span>
+                        @endif
+                    </a>
+                @endif
 
                 <!-- ==================== RIGHT SIDE USER MENU ==================== -->
                 <ul class="navbar-nav ms-auto">
-                    <!-- Notifications -->
+                    
                     @php
                         $notifications = DB::table('activity_logs')->where('user_id', auth()->id())->latest()->take(5)->get();
                         $unreadCount = DB::table('activity_logs')->where('user_id', auth()->id())->where('is_read', 0)->count();
@@ -532,13 +605,10 @@
                         </div>
                     </li>
 
-                    <!-- Theme Toggle -->
-                    <li class="nav-item me-2">
-                        <button class="btn btn-sm btn-outline-light" onclick="toggleTheme()" id="themeBtn">
-                            <i class="fas fa-moon"></i>
-                        </button>
-                    </li>
-
+                    <button class="btn btn-sm btn-outline-light" onclick="toggleTheme()" id="themeBtn">
+                        <i class="fas fa-moon"></i>
+                    </button>
+                    
                     <!-- User Profile Dropdown -->
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
@@ -573,6 +643,7 @@
                                     @endif
                                 @endif
                             @endif
+                            
                             <li><hr class="dropdown-divider"></li>
                             <li>
                                 <form method="POST" action="{{ route('logout') }}">

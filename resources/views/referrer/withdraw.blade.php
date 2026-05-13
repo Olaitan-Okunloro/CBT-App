@@ -7,7 +7,7 @@
 
     <div class="card shadow-sm">
 
-        <div class="card-header bg-success text-white">
+        <div class="card-header bg-success">
             Withdraw Funds
         </div>
 

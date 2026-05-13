@@ -5,7 +5,7 @@
 @section('content')
 <div class="container">
 
-    <h3 class="mb-4 text-white">
+    <h3 class="mb-4">
         <i class="fas fa-headset me-2"></i>
         Support Inbox
     </h3>

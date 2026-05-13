@@ -7,7 +7,7 @@
     <div class="row justify-content-center">
         <div class="col-md-10">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-primary">
                     <h4 class="mb-0">
                         <i class="fas fa-robot me-2"></i>AI Question Generator
                     </h4>

@@ -31,7 +31,7 @@
 
     <h4 class="mb-4">📚 Practice Questions</h4>
 
-    <form action="{{ route('student.external.practice.start') }}" method="GET">
+    <form action="{{ route('student.practice.start') }}" method="GET">
 
         {{-- SUBJECTS --}}
         <div class="mb-4">
@@ -54,11 +54,23 @@
         <input type="hidden" name="subject_id" id="subject_id">
 
         {{-- TOPIC --}}
-        <div class="mb-3">
+        <!-- <div class="mb-3">
             <select name="topic_id" id="topic" required>
                 <option value="">Select Topic</option>
             </select>
-        </div>
+        </div> -->
+
+        <div class="mb-3">
+    <label for="topic" class="form-label fw-bold">
+        📚 Topic
+    </label>
+    <select name="topic_id" id="topic" class="form-control" required style="background: white; color: black; border: 1px solid #ced4da; border-radius: 6px; padding: 8px 12px;">
+        <option value="" style="background: white; color: black;">-- Select Topic --</option>
+    </select>
+    <div class="form-text">
+        <i class="fas fa-info-circle"></i> Topics will load after subject selection
+    </div>
+</div>
 
         <button class="btn btn-primary">
             🚀 Start Practice

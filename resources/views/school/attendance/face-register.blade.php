@@ -9,7 +9,7 @@
         <div class="col-md-8">
 
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-primary">
                     Register Face - {{ $student->user->name ?? 'Student' }}
                 </div>
 

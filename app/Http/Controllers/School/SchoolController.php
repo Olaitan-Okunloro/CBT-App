@@ -11,6 +11,7 @@ use App\Models\School;
 use App\Models\SchoolClass;
 use App\Models\SchoolDetail;
 use App\Models\ClassLevel;
+use App\Models\Notification;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
@@ -1087,6 +1088,34 @@ class SchoolController extends Controller
             ->update(['status' => 'approved']);
 
         return back()->with('success', count($ids) . ' questions approved');
+    }
+
+    public function sendNotification(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'message' => 'required|string',
+            'recipient_type' => 'required|in:students,teachers,all',
+        ]);
+        
+        $school = auth()->user();
+        $schoolDetail = $school->schoolDetail;
+        
+        Notification::create([
+            'title' => $request->title,
+            'message' => $request->message,
+            'sender_type' => 'school',
+            'sender_id' => $school->id,
+            'recipient_type' => $request->recipient_type,
+            'priority' => 'normal',
+        ]);
+        
+        return redirect()->back()->with('success', 'Notification sent successfully');
+    }
+
+    public function showNotificationForm()
+    {
+        return view('school.notifications.create');
     }
 
 }

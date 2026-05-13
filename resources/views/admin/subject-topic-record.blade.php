@@ -6,7 +6,7 @@
 <div class="container-fluid">
     
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="text-white">
+        <h3>
             <i class="fas fa-chalkboard-user me-2"></i>
             Admin Dashboard
         </h3>
@@ -87,7 +87,7 @@
 
     <!-- Subjects & Topics Table -->
     <div class="card shadow-sm border-0">
-        <div class="card-header bg-dark text-white">
+        <div class="card-header">
             <div class="d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="fas fa-table me-2"></i>
@@ -181,7 +181,7 @@
 
     <!-- Subjects Summary Card -->
     <div class="card shadow-sm border-0 mt-4">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-primary">
             <h5 class="mb-0">
                 <i class="fas fa-chart-pie me-2"></i>
                 Subjects Summary

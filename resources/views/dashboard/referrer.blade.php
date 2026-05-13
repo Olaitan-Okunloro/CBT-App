@@ -7,7 +7,7 @@
 
         {{-- 
     <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-danger text-white">
+        <div class="card-header bg-danger">
             <i class="fas fa-bullhorn me-2"></i>
             Announcements
         </div>
@@ -16,7 +16,7 @@
                 <div class="border-bottom mb-3 pb-2">
                     <h6 class="mb-1">{{ $row->title }}</h6>
                     <p class="mb-1">{{ $row->message }}</p>
-                    <small class="text-white">{{ $row->created_at->diffForHumans() }}</small>
+                    <small>{{ $row->created_at->diffForHumans() }}</small>
                 </div>
             @endforeach
         </div>
@@ -80,7 +80,7 @@
 
     <div class="card shadow-sm">
 
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-primary">
             Recent Commission History
         </div>
 

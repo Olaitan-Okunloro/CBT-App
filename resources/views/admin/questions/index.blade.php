@@ -7,7 +7,7 @@
 
     <div class="card shadow-sm">
 
-        <div class="card-header bg-dark text-white">
+        <div class="card-header">
             Question Approval
         </div>
 

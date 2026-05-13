@@ -17,6 +17,7 @@ class StudentDetail extends Model
         'registration_number',
         'has_paid',
         'email_sub',
+        'subscription_duration',
         'payment_reference',
         'guardian_email',
         'payment_date',

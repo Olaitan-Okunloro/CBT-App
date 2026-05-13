@@ -7,7 +7,7 @@
 
         {{-- 
     <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-danger text-white">
+        <div class="card-header bg-danger">
             <i class="fas fa-bullhorn me-2"></i>
             Announcements
         </div>
@@ -16,7 +16,7 @@
                 <div class="border-bottom mb-3 pb-2">
                     <h6 class="mb-1">{{ $row->title }}</h6>
                     <p class="mb-1">{{ $row->message }}</p>
-                    <small class="text-white">{{ $row->created_at->diffForHumans() }}</small>
+                    <small>{{ $row->created_at->diffForHumans() }}</small>
                 </div>
             @endforeach
         </div>
@@ -29,12 +29,12 @@
 
         <div>
 
-            <h3 class="mb-1 text-white">
+            <h3 class="mb-1">
                 <i class="fas fa-chalkboard-teacher me-2"></i>
                 Teacher Dashboard
             </h3>
 
-            <small class="text-light">
+            <small>
                 Welcome back, {{ auth()->user()->name }}
             </small>
 
@@ -238,7 +238,7 @@
 
         <div class="card shadow-sm border-0 mt-4">
 
-            <div class="card-header bg-dark text-white">
+            <div class="card-header">
                 <i class="fas fa-history me-2"></i>
                 Recent Student Activity
             </div>

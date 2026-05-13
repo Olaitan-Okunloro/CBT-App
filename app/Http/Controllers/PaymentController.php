@@ -19,91 +19,124 @@ use Barryvdh\DomPDF\Facade\Pdf;
 class PaymentController extends Controller
 {
     /**
-     * Show the payment page
+     * Show the payment page with subscription options
      */
-
+    /**
+ * Show the payment page with subscription options
+ */
     public function showPaymentPage()
     {
         $user = Auth::user();
-
         $sub = Subscription::first();
-
+        
+        // Get base amount (4 months)
+        $baseAmount = $sub->sub_amount ?? 5000;
+        
+        // Calculate different subscription options
+        $subscriptionOptions = [
+            '4_months' => [
+                'duration' => 4,
+                'amount' => $baseAmount,
+                'label' => '4 Months Subscription',
+                'saving' => 0
+            ],
+            '8_months' => [
+                'duration' => 8,
+                'amount' => $baseAmount * 2,
+                'label' => '8 Months Subscription',
+                'saving' => 0
+            ],
+            '12_months' => [
+                'duration' => 12,
+                'amount' => $baseAmount * 3,
+                'label' => '12 Months Subscription (1 Year)',
+                'saving' => round((($baseAmount * 3) - ($baseAmount * 2.5)) / ($baseAmount * 3) * 100)
+            ]
+        ];
+        
         $type = session('payment_type', 'main');
-
+        
         if ($type == 'email_subscription') {
-
-            $amount = $sub->email_sub ?? 0;
-            $title  = 'Email Notification Subscription';
-
+            $amount = $sub->email_sub ?? 1000;
+            $title = 'Email Notification Subscription';
+            $subscriptionOptions = null; // No options for email subscription
         } else {
-
-            $amount = $sub->sub_amount ?? 200;
-            $title  = 'Main Registration Subscription';
+            $amount = $baseAmount; // Default amount for main subscription
+            $title = 'Choose Your Subscription Plan';
         }
-
-        if (
-            $user->studentDetail &&
-            $user->studentDetail->has_paid &&
-            $type != 'email_subscription'
-        ) {
+        
+        // Check if already paid
+        if ($user->studentDetail && $user->studentDetail->has_paid && $type != 'email_subscription') {
             return redirect()->route('dashboard')
                 ->with('info', 'Your payment is already completed.');
         }
-
+        
         return view('payment.index', compact(
             'user',
             'amount',
-            'title'
+            'title',
+            'subscriptionOptions',
+            'baseAmount',
+            'type'
         ));
     }
-
+    
+    /**
+     * Initialize payment with selected plan
+     */
     public function initialize(Request $request)
     {
         try {
-
             $user = Auth::user();
-
             $sub = Subscription::first();
-
             $type = session('payment_type', 'main');
-
-            // Determine amount
+            
+            // Get selected duration from request
+            $selectedDuration = $request->duration ?? 4; // Default 4 months
+            
+            // Determine amount based on duration
             if ($type == 'email_subscription') {
-                $amount = $sub->email_sub ?? 0;
+                $amount = $sub->email_sub ?? 1000;
+                $duration = null;
             } else {
-                $amount = $sub->sub_amount ?? 200;
+                $baseAmount = $sub->sub_amount ?? 5000;
+                
+                // Calculate amount based on duration
+                if ($selectedDuration == 4) {
+                    $amount = $baseAmount;
+                    $duration = 4;
+                } elseif ($selectedDuration == 8) {
+                    $amount = $baseAmount * 2;
+                    $duration = 8;
+                } else {
+                    $amount = $baseAmount * 3;
+                    $duration = 12;
+                }
             }
-
+            
             // Prevent duplicate MAIN payment only
-            if (
-                $user->studentDetail &&
-                $user->studentDetail->has_paid &&
-                $type != 'email_subscription'
-            ) {
+            if ($user->studentDetail && $user->studentDetail->has_paid && $type != 'email_subscription') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Main subscription already completed.'
                 ], 400);
             }
-
+            
             // Prevent duplicate EMAIL payment
-            if (
-                $user->studentDetail &&
-                $user->studentDetail->email_sub == 1 &&
-                $type == 'email_subscription'
-            ) {
+            if ($user->studentDetail && $user->studentDetail->email_sub == 1 && $type == 'email_subscription') {
                 return response()->json([
                     'success' => false,
                     'message' => 'Email subscription already active.'
                 ], 400);
             }
-
+            
             $reference = 'PAY-' . Str::random(8) . '-' . time();
-
+            
+            // Delete any pending payments
             Payment::where('user_id', $user->id)
                 ->where('status', 'pending')
                 ->delete();
-
+            
             $payment = Payment::create([
                 'user_id' => $user->id,
                 'amount' => $amount,
@@ -111,10 +144,12 @@ class PaymentController extends Controller
                 'status' => 'pending',
                 'payment_method' => 'Paystack',
                 'metadata' => json_encode([
-                    'payment_type' => $type
+                    'payment_type' => $type,
+                    'duration' => $duration ?? null,
+                    'selected_duration' => $selectedDuration
                 ])
             ]);
-
+            
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET_KEY'),
                 'Content-Type' => 'application/json',
@@ -126,61 +161,35 @@ class PaymentController extends Controller
                 'metadata' => [
                     'user_id' => $user->id,
                     'payment_id' => $payment->id,
-                    'payment_type' => $type
+                    'payment_type' => $type,
+                    'duration' => $duration ?? null
                 ]
             ]);
-
+            
             $data = $response->json();
-
+            
             if ($response->successful() && $data['status']) {
-
                 return response()->json([
                     'success' => true,
                     'authorization_url' => $data['data']['authorization_url']
                 ]);
             }
-
+            
             $payment->update(['status' => 'failed']);
-
+            
             return response()->json([
                 'success' => false,
                 'message' => $data['message'] ?? 'Payment initialization failed'
             ], 422);
-
+            
         } catch (\Exception $e) {
-
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
             ], 500);
         }
     }
-
-    private function initializePaystackPayment($amount, $user)
-    {
-        $reference = 'PAY-' . \Illuminate\Support\Str::random(8) . '-' . time();
-
-        $response = \Illuminate\Support\Facades\Http::withHeaders([
-            'Authorization' => 'Bearer ' . config('services.paystack.secret_key'),
-            'Content-Type' => 'application/json'
-        ])->post('https://api.paystack.co/transaction/initialize', [
-            'email' => $user->email,
-            'amount' => $amount * 100, // Paystack uses kobo
-            'reference' => $reference,
-            'callback_url' => route('payment.callback')
-        ]);
-
-        if (!$response->successful()) {
-            \Log::error('Paystack initialization failed', [
-                'response' => $response->body()
-            ]);
-
-            return back()->with('error', 'Unable to initialize payment');
-        }
-
-        return $response->json();
-    }
-
+    
     /**
      * Handle Paystack callback
      */
@@ -189,9 +198,8 @@ class PaymentController extends Controller
         $reference = $request->reference;
         
         \Log::info('Callback received for reference: ' . $reference);
-
+        
         try {
-            // Find the payment record
             $payment = Payment::where('reference', $reference)->first();
             
             if (!$payment) {
@@ -199,80 +207,73 @@ class PaymentController extends Controller
                 return redirect()->route('payment.cancel')
                     ->with('error', 'Payment record not found');
             }
-
+            
             if ($payment->status === 'success') {
                 return redirect()->route('dashboard')
                     ->with('info', 'Payment already verified.');
             }
-
+            
             // Verify with Paystack
             $response = Http::withHeaders([
                 'Authorization' => 'Bearer ' . env('PAYSTACK_SECRET_KEY'),
             ])->get('https://api.paystack.co/transaction/verify/' . $reference);
-
+            
             $responseData = $response->json();
-
+            
             if ($response->successful() && $responseData['data']['status'] === 'success') {
-
+                
                 $payment->update([
                     'status' => 'success',
                     'transaction_id' => $responseData['data']['id'],
                     'paid_at' => now()
                 ]);
-
+                
                 $user = $payment->user;
-
-                $user->update([
-                    'is_active' => true
-                ]);
-
+                $user->update(['is_active' => true]);
+                
                 $student = $user->studentDetail;
-
                 $meta = json_decode($payment->metadata, true);
-
-                $type = $meta['payment_type']
-                    ?? session('payment_type')
-                    ?? 'main';
-
+                
+                $type = $meta['payment_type'] ?? session('payment_type') ?? 'main';
+                $duration = $meta['duration'] ?? 12; // Default 12 months if not specified
+                
                 if ($student) {
-
                     if ($type == 'email_subscription') {
-
-                        $student->update([
-                            'email_sub' => 1
-                        ]);
-
+                        $student->update(['email_sub' => 1]);
                     } else {
-
+                        // Calculate expiry based on selected duration
+                        $expiryDate = now()->addMonths($duration);
+                        
                         $student->update([
                             'has_paid' => 1,
                             'payment_reference' => $reference,
                             'payment_date' => now(),
-                            'payment_expiry' => now()->addYear()
+                            'payment_expiry' => $expiryDate
                         ]);
-
+                        
                         $this->creditReferralCommission($student, $payment);
                     }
                 }
-
+                
                 session()->forget('payment_type');
-
+                
                 return redirect()->route('payment.success')
-                    ->with('success', 'Payment successful!')
+                    ->with('success', 'Payment successful! Your account is active for ' . $duration . ' months.')
                     ->with('reference', $reference);
+                    
             } else {
                 $payment->update(['status' => 'failed']);
                 return redirect()->route('payment.cancel')
                     ->with('error', 'Payment verification failed');
             }
-
+            
         } catch (\Exception $e) {
             \Log::error('Callback error: ' . $e->getMessage());
             return redirect()->route('payment.cancel')
                 ->with('error', 'An error occurred');
         }
     }
-
+    
     /**
      * Payment success page
      */
@@ -280,7 +281,7 @@ class PaymentController extends Controller
     {
         return view('payment.success');
     }
-
+    
     /**
      * Payment cancel page
      */

@@ -12,6 +12,9 @@ use App\Models\StudentDetail;
 use App\Models\TeacherDetail;
 use App\Models\ExamAttempt;
 use App\Models\Announcement;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Imports\TopicsImport;
+
 
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
@@ -686,5 +689,168 @@ class DashboardController extends Controller
             ->paginate(10); // 10 topics per page
         
         return view('admin.subject-topic-record', compact('subjects', 'topics'));
+    }
+
+    public function showUploadForm()
+    {
+        return view('admin.topics.bulk-upload');
+    }
+
+    public function bulkUpload(Request $request)
+    {
+        $request->validate([
+            'excel_file' => 'required|file|mimes:xlsx,xls,csv|max:5120',
+        ]);
+
+        try {
+            // Load Excel data
+            $data = Excel::toArray([], $request->file('excel_file'));
+            
+            if (empty($data) || empty($data[0])) {
+                return redirect()->back()->with('error', 'Excel file is empty');
+            }
+            
+            // Get the first sheet
+            $rows = $data[0];
+            
+            // Get headers (first row)
+            $headers = array_shift($rows);
+            
+            // Normalize headers (convert to lowercase, remove spaces)
+            $headers = array_map(function($header) {
+                return strtolower(trim($header));
+            }, $headers);
+            
+            $successCount = 0;
+            $failedCount = 0;
+
+            $skippedCount = 0;
+            $errors = [];
+            
+            foreach ($rows as $rowIndex => $row) {
+                try {
+                    // Map row data to headers
+                    // ENSURE SAME COLUMN COUNT
+                    $row = array_pad($row, count($headers), null);
+
+                    $rowData = array_combine($headers, $row);
+
+                    if (!$rowData) {
+
+                        $failedCount++;
+
+                        $errors[] =
+                            "Row " . ($rowIndex + 2) .
+                            ": Invalid column structure";
+
+                        continue;
+                    }
+                    
+                    // Extract values
+                    $classLevelId = $rowData['class_level_id'] ?? null;
+                    $subjectId = $rowData['subject_id'] ?? null;
+                    $topic = $rowData['topic'] ?? null;
+                    
+                    // Validate
+                    if (!$classLevelId || !$subjectId || !$topic) {
+                        $failedCount++;
+                        $errors[] = "Row " . ($rowIndex + 2) . ": Missing required data";
+                        continue;
+                    }
+                    
+                    // Check if exists
+                    $exists = \App\Models\Topic::where('class_level_id', $classLevelId)
+                        ->where('subject_id', $subjectId)
+                        ->where('topic', $topic)
+                        ->exists();
+                    
+                    // if ($exists) {
+                    //     $failedCount++;
+                    //     $errors[] = "Row " . ($rowIndex + 2) . ": Topic '{$topic}' already exists";
+                    //     continue;
+                    // }
+
+                    if ($exists) {
+
+                        $skippedCount++;
+
+                        continue;
+                    }
+                    
+                    // Insert directly
+                    \App\Models\Topic::create([
+                        'class_level_id' => $classLevelId,
+                        'subject_id' => $subjectId,
+                        'topic' => $topic,
+                    ]);
+                    
+                    $successCount++;
+                    
+                } catch (\Exception $e) {
+                    $failedCount++;
+                    $errors[] =
+
+        "Row " . ($rowIndex + 2) .
+
+        ": " .
+
+        $e->getMessage() .
+
+        " | Data: " .
+
+        json_encode($row);
+                }
+            }
+            
+            // $message = "$successCount topic(s) uploaded successfully!";
+
+            $message =
+            "$successCount topic(s) uploaded successfully!";
+
+                if ($skippedCount > 0) {
+
+                $message .=
+                    " $skippedCount duplicate topic(s) skipped.";
+            }
+            
+            if ($failedCount > 0) {
+                $message .= " $failedCount topic(s) failed.";
+                if (!empty($errors)) {
+                    session()->flash('upload_errors', array_slice($errors, 0, 30));
+                }
+                return redirect()->back()->with('warning', $message);
+            }
+            
+            return redirect()->back()->with('success', $message);
+            
+        } catch (\Exception $e) {
+            \Log::error('Bulk upload error: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
+        }
+    }
+    
+    public function downloadTemplate()
+    {
+        // Create a sample CSV template
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="topics_template.csv"',
+        ];
+        
+        $columns = ['class_level_id', 'subject_id', 'topic'];
+        
+        $callback = function() use ($columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+            
+            // Sample data
+            fputcsv($file, [1, 1, 'Introduction to Algebra']);
+            fputcsv($file, [2, 2, 'Nouns and Pronouns']);
+            fputcsv($file, [3, 3, 'Motion and Force']);
+            
+            fclose($file);
+        };
+        
+        return response()->stream($callback, 200, $headers);
     }
 }

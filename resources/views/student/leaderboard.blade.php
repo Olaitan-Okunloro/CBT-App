@@ -2,11 +2,11 @@
 
 @section('content')
 
-<div class="container text-white">
+<div class="container ">
 
 <h3>🏆 Leaderboard</h3>
 
-<table class="table table-dark mt-3">
+<table class="table  mt-3">
     <thead>
         <tr>
             <th>#</th>

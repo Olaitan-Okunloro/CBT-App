@@ -8,7 +8,7 @@
 
         {{-- 
     <div class="card shadow-sm border-0 mb-4">
-        <div class="card-header bg-danger text-white">
+        <div class="card-header bg-danger">
             <i class="fas fa-bullhorn me-2"></i>
             Announcements
         </div>
@@ -17,7 +17,7 @@
                 <div class="border-bottom mb-3 pb-2">
                     <h6 class="mb-1">{{ $row->title }}</h6>
                     <p class="mb-1">{{ $row->message }}</p>
-                    <small class="text-white">{{ $row->created_at->diffForHumans() }}</small>
+                    <small>{{ $row->created_at->diffForHumans() }}</small>
                 </div>
             @endforeach
         </div>
@@ -28,7 +28,7 @@
      
     <!-- Page Header with Stats -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 style="color:white"><i class="fas fa-school me-2" style="color:white"></i>School Dashboard</h2>
+        <h2><i class="fas fa-school me-2"></i>School Dashboard</h2>
         <div>
             <a href="#" class="btn btn-primary">
                 <i class="fas fa-chart-bar me-1"></i>Generate Report

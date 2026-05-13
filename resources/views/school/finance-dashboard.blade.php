@@ -5,14 +5,14 @@
 @section('content')
 <div class="container">
 
-    <h3 class="mb-4 text-white">
+    <h3 class="mb-4">
         Finance Dashboard
     </h3>
 
     <div class="row g-3 mb-4">
 
         <div class="col-md-3">
-            <div class="card bg-success text-white text-center">
+            <div class="card bg-succes text-center">
 
                 <div class="card-body">
                     <h6>Total Income</h6>
@@ -26,7 +26,7 @@
         </div>
 
         <div class="col-md-3">
-            <div class="card bg-danger text-white text-center">
+            <div class="card bg-danger text-center">
 
                 <div class="card-body">
                     <h6>Total Debt</h6>
@@ -37,7 +37,7 @@
         </div>
 
         <div class="col-md-3">
-            <div class="card bg-primary text-white text-center">
+            <div class="card bg-primary text-center">
 
                 <div class="card-body">
                     <h6>Students Paid</h6>
@@ -51,7 +51,7 @@
         </div>
 
         <div class="col-md-3">
-            <div class="card bg-dark text-white text-center">
+            <div class="card text-center">
 
                 <div class="card-body">
                     <h6>Total Students</h6>
@@ -68,7 +68,7 @@
 
     <div class="card shadow-sm border-0">
 
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-primary">
             Monthly Income Trend
         </div>
 

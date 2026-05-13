@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="container">
-    <h3 class="mb-3 text-white">📊 Performance Analysis</h3>
+    <h3 class="mb-3">📊 Performance Analysis</h3>
 
     {{-- WEAK TOPICS --}}
     <div class="card mb-4">

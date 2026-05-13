@@ -25,6 +25,7 @@ use App\Http\Controllers\Student\External\PracticeController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\Auth\NewPasswordController;
+use App\Http\Controllers\Auth\NotificationController;
 
 
 use Illuminate\Support\Facades\Route;
@@ -76,7 +77,14 @@ Route::middleware('auth')->group(function () {
     Route::get('/payment/receipt/{reference}', 
         [PaymentController::class,'downloadReceipt']
     )->name('payment.receipt');
+});
 
+
+// Notifications Routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('notifications.mark-read');
+    Route::get('/notifications/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('notifications.mark-all-read');
 });
 
 Route::middleware(['auth','verified', \App\Http\Middleware\CheckPayment::class])->group(function(){
@@ -278,6 +286,13 @@ Route::post('/admin/question-bank/delete/{id}',[AdminAIQuestionController::class
 
 Route::get('/admin/subject-topic-record', [DashboardController::class, 'subjectTopicrecord'])
     ->name('admin.subject.topic.record');  
+
+// import topic routes
+Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/topics/bulk-upload', [DashboardController::class, 'showUploadForm'])->name('topics.bulk-upload');
+    Route::post('/topics/bulk-upload', [DashboardController::class, 'bulkUpload'])->name('topics.bulk-upload.post');
+    Route::get('/topics/download-template', [DashboardController::class, 'downloadTemplate'])->name('topics.download-template');
+});
             
 // admin route ends here   
 
@@ -396,8 +411,10 @@ Route::get('/school/students/download-page', [StudentController::class,'download
     ->name('school.students.download.page');
 
 // face recognition handled by school  
-Route::get('/school/student/face/register/{id}', [AttendanceController::class, 'schoolFaceRegisterForm'])->name('school.face.register');
-Route::post('/school/student/face/register/{id}', [AttendanceController::class, 'schoolSaveFace'])->name('school.face.save');
+Route::get('/school/student/face/register/{id}', [AttendanceController::class, 'schoolFaceRegisterForm'])
+    ->name('school.face.register');
+Route::post('/school/student/face/register/{id}', [AttendanceController::class, 'schoolSaveFace'])
+    ->name('school.face.save');
 Route::get('school/attendance/face-scan', [AttendanceController::class, 'schoolFaceScan'])
     ->name('school.attendance.face.scan');
 Route::get('/school/students/face-registration', [AttendanceController::class, 'schoolStudentFaceList'])
@@ -482,6 +499,16 @@ Route::post(
     '/school/questions/bulk-approve',
     [SchoolController::class, 'bulkApprove']
 )->name('school.question.bulkApprove');
+
+// School Notifications
+Route::middleware(['auth'])->prefix('school')->name('school.')->group(function () {
+    
+});
+
+Route::get('/notifications/create', [SchoolController::class, 'showNotificationForm'])
+        ->name('notifications.create');
+    Route::post('/notifications/send', [SchoolController::class, 'sendNotification'])
+        ->name('notifications.send');
     
 // school route ends here 
 
@@ -623,6 +650,17 @@ Route::get('/teacher/students', [TeacherController::class, 'students'])
 Route::get('/get-topics/{subjectId}', [TopicController::class, 'getTopicsBySubject'])
     ->name('get.topics');    
 
+// Teacher Notifications
+// routes/web.php
+
+Route::middleware(['auth', 'role:teacher'])->prefix('teacher')->name('teacher.')->group(function () {
+    // ... existing routes
+    Route::get('/notifications/create', [TeacherController::class, 'showNotificationForm'])
+        ->name('notifications.create');
+    Route::post('/notifications/send', [TeacherController::class, 'sendNotification'])
+        ->name('notifications.send');
+});
+
 // teacher's route ends here 
 
 
@@ -633,153 +671,162 @@ Route::get('/get-topics/{subjectId}', [TopicController::class, 'getTopicsBySubje
 */
 
 // students routes start here
-Route::get('/student/analytics', [\App\Http\Controllers\Student\ExamController::class, 'analytics'])
+Route::middleware([
+    'auth',
+    \App\Http\Middleware\EnsureStudentAccess::class
+])->group(function () {
+
+    // =================================
+    // EXAMS
+    // =================================
+
+    Route::get('/student/analytics', [\App\Http\Controllers\Student\ExamController::class, 'analytics'])
     ->name('student.analytics');
 
 // qr code    
 Route::get('/student/{id}/qrcode', [QRcodeController::class, 'qr'])->name('student.qrcode');
 
+    // exam route
+    Route::get('/exam/start/{examId}', [ExamController::class, 'start'])
+        ->name('student.exam.start');
+        
+    // available exams route
+    Route::get('/student/student/exams',[ExamController::class, 'available'])
+    ->name('student.exams.available');    
+        
+    // exam questions route
+    Route::get('/student/exam/question', [ExamController::class, 'question'])
+        ->name('student.exam.question');
 
+    Route::post('/student/exam/answer', [ExamController::class, 'answer'])
+        ->name('student.exam.answer');
 
-// exam route
-Route::get('/exam/start/{examId}', [ExamController::class, 'start'])
-    ->name('student.exam.start');
-    
-// available exams route
-Route::get('/student/student/exams', [ExamController::class, 'available'])
-    ->name('student.exams.available');
-    
-// exam questions route
-Route::get('/student/exam/question', [ExamController::class, 'question'])
-    ->name('student.exam.question');
+    Route::get('/student/exam/result/{id}', [\App\Http\Controllers\Student\ExamController::class, 'result'])
+        ->name('student.exam.result');      
 
-Route::post('/student/exam/answer', [ExamController::class, 'answer'])
-    ->name('student.exam.answer');
+    // auto submition route
+    Route::get('/student/exam/submit-auto', [ExamController::class, 'autoSubmit'])
+        ->name('student.exam.submit.auto');
+        
+    // leaderboard
+    Route::get('student/leaderboard', [App\Http\Controllers\Student\LeaderboardController::class, 'index'])
+        ->name('student.leaderboard');
 
-Route::get('/student/exam/result/{id}', [\App\Http\Controllers\Student\ExamController::class, 'result'])
-    ->name('student.exam.result');      
+    // download result    
+    Route::get('/exam/result/{id}/pdf', [ExamController::class, 'downloadResult'])
+        ->name('student.exam.pdf');
 
-// auto submition route
-Route::get('/student/exam/submit-auto', [ExamController::class, 'autoSubmit'])
-    ->name('student.exam.submit.auto');
-    
-// leaderboard
-Route::get('student/leaderboard', [App\Http\Controllers\Student\LeaderboardController::class, 'index'])
-    ->name('student.leaderboard');
+    // auto-populate subjects    
+    Route::get('/get-subjects/{classId}', function ($classId) {
 
-// download result    
-Route::get('/exam/result/{id}/pdf', [ExamController::class, 'downloadResult'])
-    ->name('student.exam.pdf');    
+        return \App\Models\Subject::whereIn('id', function ($query) use ($classId) {
+            $query->select('subject_id')
+                ->from('topics')
+                ->where('class_level_id', $classId);
+        })->get();
+    });
 
-// auto-populate subjects    
-Route::get('/get-subjects/{classId}', function ($classId) {
-
-    return \App\Models\Subject::whereIn('id', function ($query) use ($classId) {
-        $query->select('subject_id')
-              ->from('topics')
-              ->where('class_level_id', $classId);
-    })->get();
-});
-
-// get topic route
-Route::get('/get-topics/{subjectId}', function ($subjectId) {
-    return \App\Models\Topic::where('subject_id', $subjectId)->get();
-});  
-
-// Student routes
-Route::middleware(['auth'])->prefix('student')->name('student.')->group(function () {      
+    // get topic route
+    Route::get('/get-topics/{subjectId}', function ($subjectId) {
+        return \App\Models\Topic::where('subject_id', $subjectId)->get();
+    });
     
     Route::get('/results', [StudentController::class, 'results'])
         ->name('results');
     
     Route::get('/exam/{exam}/take', [StudentController::class, 'takeExam'])
         ->name('exam.take');
-});
 
+    // result checker
+    Route::get('/student/check-result', [ResultController::class, 'checker'])->name('results.checker');
+    Route::post('/student/check-result', [ResultController::class, 'showResult'])->name('results.show');
 
-// result checker
-Route::get('/student/check-result', [ResultController::class, 'checker'])->name('results.checker');
-Route::post('/student/check-result', [ResultController::class, 'showResult'])->name('results.show');
+    // correction route
+    Route::get('/exam/review/{id}', [ExamController::class, 'review'])
+        ->name('student.exam.review');
 
-// correction route
-Route::get('/exam/review/{id}', [ExamController::class, 'review'])
-    ->name('student.exam.review');
+    Route::get('/student/profile', [StudentController::class, 'profile'])
+        ->name('student.profile');
 
-Route::get('/student/profile', [StudentController::class, 'profile'])
-    ->name('student.profile');
+    Route::post('/student/profile', [StudentController::class, 'updateProfile'])
+        ->name('student.profile.update');      
+        
+    Route::get('/student/change-password', [StudentController::class, 'changePassword'])
+        ->name('student.password');
 
-Route::post('/student/profile', [StudentController::class, 'updateProfile'])
-    ->name('student.profile.update');      
-    
-Route::get('/student/change-password', [StudentController::class, 'changePassword'])
-    ->name('student.password');
+    Route::post('/student/change-password', [StudentController::class, 'updatePassword'])
+        ->name('student.password.update');
+        
+    Route::get('/student/activity-log', [StudentController::class, 'activityLog'])
+        ->name('student.activity');  
+        
+    Route::get('/student/email-activate', [PaymentController::class, 'emailActivate'])
+        ->name('student.email.activate');
 
-Route::post('/student/change-password', [StudentController::class, 'updatePassword'])
-    ->name('student.password.update');
-    
-Route::get('/student/activity-log', [StudentController::class, 'activityLog'])
-    ->name('student.activity');  
-    
-Route::get('/student/email-activate', [PaymentController::class, 'emailActivate'])
-    ->name('student.email.activate');
+    Route::get('/student/email-disable', [PaymentController::class, 'emailDisable'])
+        ->name('student.email.disable');
 
-Route::get('/student/email-disable', [PaymentController::class, 'emailDisable'])
-    ->name('student.email.disable');
+    Route::get('/student/school-fees', [PaymentController::class, 'schoolFees'])
+        ->name('student.school.fees');
 
-Route::get('/student/school-fees', [PaymentController::class, 'schoolFees'])
-    ->name('student.school.fees');
+    Route::post('/student/school-fees', [PaymentController::class, 'submitSchoolFees'])
+        ->name('student.school.fees.submit');    
 
-Route::post('/student/school-fees', [PaymentController::class, 'submitSchoolFees'])
-    ->name('student.school.fees.submit');    
-
-Route::get('/student/fees-receipt/{id}', [PaymentController::class, 'feesReceipt'])
-    ->name('student.fees.receipt'); 
-    
-Route::get('/student/fees-history', [PaymentController::class, 'feesHistory'])
-    ->name('student.fees.history');    
-    
-// exam route
-Route::middleware(['auth','paid'])->group(function () {
-
+    Route::get('/student/fees-receipt/{id}', [PaymentController::class, 'feesReceipt'])
+        ->name('student.fees.receipt'); 
+        
+    Route::get('/student/fees-history', [PaymentController::class, 'feesHistory'])
+        ->name('student.fees.history');
+        
     // Route::get('/student/exams', [ExamController::class,'index']);
     Route::get('/student/exam/{id}', [ExamController::class,'start']);
     Route::post('/student/exam/submit', [ExamController::class,'submit']);
-});  
-
-Route::get(
+    
+    Route::get(
     '/student/practice',
     [StudentController::class, 'practicePage']
-)->name('student.practice');
+    )->name('student.practice');
 
-Route::post(
-    '/student/practice/start',
-    [StudentController::class, 'startPractice']
-)->name('student.practice.start');
+    Route::post(
+        '/student/practice/start',
+        [StudentController::class, 'startPractice']
+    )->name('student.practice.start');
 
-Route::get(
-    '/student/practice/dashboard',
-    [StudentController::class, 'practiceDashboard']
-)->name('student.practice.dashboard');
+    Route::get(
+        '/student/practice/dashboard',
+        [StudentController::class, 'practiceDashboard']
+    )->name('student.practice.dashboard');
 
-Route::get(
-    '/student/result/pdf',
-    [ResultController::class, 'downloadPdf']
-)->name('student.result.pdf');
+    Route::get(
+        '/student/result/pdf',
+        [ResultController::class, 'downloadPdf']
+    )->name('student.result.pdf');
 
-Route::get(
-    '/student/save-question/{id}',
-    [ExamController::class, 'toggleSave']
-)->name('student.save.question');
+    Route::get(
+        '/student/save-question/{id}',
+        [ExamController::class, 'toggleSave']
+    )->name('student.save.question');
 
-Route::get(
-    '/student/saved-questions',
-    [ExamController::class, 'savedQuestions']
-)->name('student.saved.questions');
+    Route::get(
+        '/student/saved-questions',
+        [ExamController::class, 'savedQuestions']
+    )->name('student.saved.questions');
 
-Route::get(
-    '/student/weak-topics',
-    [ExamController::class, 'weakTopics']
-)->name('student.weak.topics');
+    Route::get(
+        '/student/weak-topics',
+        [ExamController::class, 'weakTopics']
+    )->name('student.weak.topics');
+
+
+
+    Route::delete(
+        '/student/save-question/{id}',
+        [ExamController::class, 'removeSavedQuestion']
+    )->name('student.save-question.remove');
+
+  
+
+});
 
 // block external students
 Route::middleware([
@@ -808,11 +855,6 @@ Route::middleware([
     ->name('student.email.activate');
 
 });
-
-Route::delete(
-    '/student/save-question/{id}',
-    [ExamController::class, 'removeSavedQuestion']
-)->name('student.save-question.remove');
 
 // external student routes
 Route::middleware(['auth', 'ensure.external.class'])->group(function () {
@@ -863,46 +905,15 @@ Route::middleware('auth')->group(function () {
     Route::get('/student/practice/question', [ExamController::class, 'showQuestion'])
     ->name('student.show.question');
 
-    // Route::post('/student/practice/submit', [App\Http\Controllers\Student\External\ExamController::class, 'submitAnswer'])
-    //     ->name('practice.submit');
-
-    // Route::get('/practice', [App\Http\Controllers\Student\External\PracticeController::class, 'dashboard'])
-    //     ->name('practice.dashboard');
-
     Route::get('/student/practice', [ExamController::class, 'practiceDashboard'])
         ->name('student.practice.page');
     
-    // Route::get('/student/practice/start', [ExamController::class, 'startPractice'])
-    // ->name('student.external.practice.start');
 
     // In routes/web.php
     Route::get('/student/external/practice', [ExamController::class, 'startPractice'])
     ->name('student.external.practice.show');
-    
-    // Route::post('/practice/submit', [App\Http\Controllers\Student\External\PracticeController::class, 'submitAnswer'])
-    //     ->name('practice.submit');  
-    
-    // Route::get('/student/practice/complete', [App\Http\Controllers\Student\External\ExamController::class, 'complete'])
-    //     ->name('practice.complete');
 
 });
-
-// routes/web.php
-
-// External Student Routes (Practice Only)
-// Route::middleware(['auth', 'role:student'])->prefix('student/external')->name('student.external.')->group(function () {
-//     Route::get('/practice', [App\Http\Controllers\Student\External\PracticeController::class, 'dashboard'])
-//         ->name('practice.dashboard');
-    
-//     Route::post('/practice/start', [App\Http\Controllers\Student\External\PracticeController::class, 'startPractice'])
-//         ->name('practice.start');
-    
-//     Route::get('/practice/question', [App\Http\Controllers\Student\External\PracticeController::class, 'showQuestion'])
-//         ->name('practice.show');
-    
-//     Route::post('/practice/submit', [App\Http\Controllers\Student\External\PracticeController::class, 'submitAnswer'])
-//         ->name('practice.submit');
-// });
 
 // student route ends here    
 

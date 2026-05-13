@@ -5,7 +5,7 @@
 @section('content')
 <div class="container">
 
-    <h3 class="mb-4 text-white">
+    <h3 class="mb-4">
         <i class="fas fa-money-check-alt me-2"></i>
         School Fee Payments
     </h3>

@@ -2,7 +2,7 @@
 
 @section('content')
 
-<div class="container text-white">
+<div class="container">
 
     <h3 class="mb-4">📝 Exam Review</h3>
 
@@ -45,7 +45,7 @@
 
         @endif
 
-        <div class="card mb-3 p-3 text-dark">
+        <div class="card mb-3 p-3">
 
             {{-- QUESTION --}}
             <p>

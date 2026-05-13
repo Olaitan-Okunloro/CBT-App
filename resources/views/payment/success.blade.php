@@ -48,7 +48,7 @@
                         <a href="{{ route('dashboard') }}" class="btn btn-primary btn-lg me-2">
                             <i class="fas fa-tachometer-alt me-2"></i>Go to Dashboard
                         </a>
-                        <a href="{{ route('student.exams.available') }}" class="btn btn-success btn-lg">
+                        <a href="{{ route('student.practice.page') }}" class="btn btn-success btn-lg">
                             <i class="fas fa-book-open me-2"></i>Start Practicing
                         </a>
                     </div><br><br>

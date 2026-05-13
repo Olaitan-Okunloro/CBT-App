@@ -7,7 +7,7 @@
 
     <div class="card shadow-sm border-0">
 
-        <div class="card-header bg-success text-white">
+        <div class="card-header bg-success">
             <i class="fas fa-money-bill-wave me-2"></i>
             Withdrawal History
         </div>

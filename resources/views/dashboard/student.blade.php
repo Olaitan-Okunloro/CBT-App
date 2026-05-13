@@ -8,17 +8,17 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
 
         <div>
-            <h3 class="mb-1 text-white">
+            <h3 class="mb-1">
                 <i class="fas fa-user-graduate me-2"></i>
                 Student Dashboard
             </h3>
-            <small class="text-light">
+            <small>
                 Welcome back, {{ auth()->user()->name }}
             </small>
         </div>
 
         <div>
-            <button type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#studentProfileModal">
+            <button type="button" class="btn text-success btn-outline-light" data-bs-toggle="modal" data-bs-target="#studentProfileModal">
                 <i class="fas fa-user-circle me-2"></i>
                 View Profile
             </button>
@@ -149,9 +149,14 @@
     <!-- Recent Exam Activities Table -->
     @if(isset($attempts) && $attempts->count() > 0)
     <div class="card shadow-sm border-0 mt-4">
-        <div class="card-header bg-dark text-white">
-            <i class="fas fa-history me-2"></i>
-            Recent Exam Activities
+        <div class="card-header  d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-history me-2"></i>
+                Recent Exam Activities
+            </div>
+            <div>
+                <span class="badge bg-light text-dark">Total: {{ $attempts->total() }} exams</span>
+            </div>
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -166,7 +171,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach($attempts->take(10) as $exam)
+                        @foreach($attempts as $exam)
                             @php
                                 // SAFE CALCULATION - Prevent division by zero
                                 $percentage = ($exam->total_marks > 0) ? ($exam->score / $exam->total_marks) * 100 : 0;
@@ -205,11 +210,17 @@
                     </tbody>
                 </table>
             </div>
-            @if($attempts->count() > 10)
-                <div class="text-center mt-3">
-                    <a href="#" class="btn btn-sm btn-outline-primary">View All {{ $attempts->count() }} Exams</a>
+            
+            <!-- Pagination Links -->
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-muted small">
+                    Showing {{ $attempts->firstItem() }} to {{ $attempts->lastItem() }} 
+                    of {{ $attempts->total() }} results
                 </div>
-            @endif
+                <div>
+                    {{ $attempts->links('pagination::bootstrap-5') }}
+                </div>
+            </div>
         </div>
     </div>
     @else
@@ -250,69 +261,88 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            
+
             <div class="modal-body">
-                <div class="text-center mb-4">
+                {{-- PROFILE IMAGE SECTION --}}
+                <div class="text-center mb-4 text-white">
                     <div class="position-relative d-inline-block">
                         @if(auth()->user()->profile_photo)
-                            <img src="{{ asset('storage/profile/' . auth()->user()->profile_photo) }}" 
-                                 alt="Profile Picture" 
+                            <img src="{{ asset('storage/profile/' . auth()->user()->profile_photo) }}"
+                                 alt="Profile Picture"
                                  class="rounded-circle border border-3 border-primary"
                                  style="width: 120px; height: 120px; object-fit: cover;">
                         @else
                             <div class="bg-primary rounded-circle d-inline-flex align-items-center justify-content-center"
                                  style="width: 120px; height: 120px;">
-                                <i class="fas fa-user-graduate fa-4x text-white"></i>
+                                <i class="fas fa-user-graduate fa-4x"></i>
                             </div>
                         @endif
-                        
+
+                        {{-- PAYMENT STATUS BADGE --}}
                         @if(auth()->user()->studentDetail && auth()->user()->studentDetail->has_paid)
                             <span class="position-absolute bottom-0 end-0 bg-success rounded-circle p-2 border border-white">
-                                <i class="fas fa-check-circle text-white" style="font-size: 12px;"></i>
+                                <i class="fas fa-check-circle"></i>
                             </span>
                         @else
                             <span class="position-absolute bottom-0 end-0 bg-warning rounded-circle p-2 border border-white">
-                                <i class="fas fa-exclamation-circle text-white" style="font-size: 12px;"></i>
+                                <i class="fas fa-exclamation-circle"></i>
                             </span>
                         @endif
                     </div>
-                    
+
                     <h4 class="mt-3 mb-0">{{ auth()->user()->name }}</h4>
                     <small class="text-muted">{{ ucfirst(auth()->user()->role) }}</small>
                 </div>
-                
+
+                {{-- PERSONAL INFORMATION SECTION --}}
                 <div class="alert alert-info border-0 shadow-sm">
-                    <h5 class="mb-3"><i class="fas fa-info-circle me-2"></i>Personal Information</h5>
-                    
-                    <p class="mb-2"><i class="fas fa-id-card me-2 text-primary"></i>
+                    <h5 class="mb-3">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Personal Information
+                    </h5>
+
+                    {{-- REGISTRATION NUMBER --}}
+                    <p class="mb-2">
+                        <i class="fas fa-id-card me-2 text-primary"></i>
                         <strong>Registration Number:</strong><br>
                         {{ auth()->user()->studentDetail->registration_number ?? 'N/A' }}
                     </p>
-                    
-                    <p class="mb-2"><i class="fas fa-envelope me-2 text-primary"></i>
+
+                    {{-- EMAIL --}}
+                    <p class="mb-2">
+                        <i class="fas fa-envelope me-2 text-primary"></i>
                         <strong>Email:</strong><br>
                         {{ auth()->user()->email }}
                     </p>
-                    
-                    <p class="mb-2"><i class="fas fa-phone me-2 text-primary"></i>
+
+                    {{-- PHONE --}}
+                    <p class="mb-2">
+                        <i class="fas fa-phone me-2 text-primary"></i>
                         <strong>Phone:</strong><br>
                         {{ auth()->user()->phone ?? 'N/A' }}
                     </p>
-                    
+
                     @php $student = auth()->user()->studentDetail; @endphp
+
                     @if($student)
-                        <p class="mb-2"><i class="fas fa-school me-2 text-primary"></i>
+                        {{-- SCHOOL --}}
+                        <p class="mb-2">
+                            <i class="fas fa-school me-2 text-primary"></i>
                             <strong>School:</strong><br>
                             {{ $student->school->name ?? 'Not Assigned' }}
                         </p>
-                        
-                        <p class="mb-2"><i class="fas fa-layer-group me-2 text-primary"></i>
+
+                        {{-- CLASS --}}
+                        <p class="mb-2">
+                            <i class="fas fa-layer-group me-2 text-primary"></i>
                             <strong>Class:</strong><br>
                             {{ $student->class->name ?? 'Not Assigned' }}
                         </p>
-                        
+
+                        {{-- SUBSCRIPTION EXPIRY --}}
                         @if($student->payment_expiry)
-                            <p class="mb-0"><i class="fas fa-clock me-2 text-warning"></i>
+                            <p class="mb-0">
+                                <i class="fas fa-clock me-2 text-warning"></i>
                                 <strong>Subscription Expires:</strong><br>
                                 {{ $student->payment_expiry->format('F d, Y') }}
                                 <span class="badge bg-{{ $student->payment_expiry->isPast() ? 'danger' : 'success' }} ms-2">
@@ -320,33 +350,38 @@
                                 </span>
                             </p>
                         @else
-                            <p class="mb-0 text-warning"><i class="fas fa-exclamation-triangle me-2"></i>
+                            <p class="mb-0 text-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
                                 <strong>Subscription not active.</strong>
                             </p>
                         @endif
                     @endif
                 </div>
-                
+
+                {{-- STATISTICS CARDS --}}
                 <div class="row g-2 mt-2">
                     <div class="col-6">
                         <div class="card bg-light border-0 text-center p-2">
                             <small class="text-muted">Exams Taken</small>
-                            <h5 class="mb-0">{{ $totalExams ?? 0 }}</h5>
+                            <h5 class="mb-0 text-dark">{{ $totalExams ?? 0 }}</h5>
                         </div>
                     </div>
+
                     <div class="col-6">
                         <div class="card bg-light border-0 text-center p-2">
                             <small class="text-muted">Average Score</small>
-                            <h5 class="mb-0">{{ isset($averageScore) ? round($averageScore, 1) : 0 }}%</h5>
+                            <h5 class="mb-0 text-dark">{{ isset($averageScore) ? round($averageScore, 1) : 0 }}%</h5>
                         </div>
                     </div>
                 </div>
             </div>
-            
+
+            {{-- MODAL FOOTER --}}
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times me-2"></i>Close
                 </button>
+
                 <a href="{{ route('student.profile') }}" class="btn btn-primary">
                     <i class="fas fa-edit me-2"></i>Edit Profile
                 </a>
@@ -359,54 +394,36 @@
 
 @push('styles')
 <style>
-    .modal-content {
-        border-radius: 15px;
-        border: none;
-        overflow: hidden;
+    /* Existing styles... */
+    
+    /* Pagination Styling */
+    .pagination {
+        margin-bottom: 0;
     }
     
-    .modal-header {
-        border-bottom: none;
+    .pagination .page-item .page-link {
+        color: #6f42c1;
+        border-radius: 8px;
+        margin: 0 3px;
+        padding: 8px 14px;
     }
     
-    .modal-footer {
-        border-top: none;
+    .pagination .page-item.active .page-link {
+        background: linear-gradient(135deg, #6f42c1 0%, #8a5cf6 100%);
+        border-color: #6f42c1;
+        color: white;
+    }
+    
+    .pagination .page-item.disabled .page-link {
+        color: #adb5bd;
         background-color: #f8f9fa;
     }
     
-    .alert-info {
-        background: linear-gradient(135deg, #e8f4fd 0%, #f0f7ff 100%);
-        border: none;
-        border-radius: 12px;
-    }
-    
-    .progress {
-        background-color: #e9ecef;
-        border-radius: 10px;
-    }
-    
-    .progress-bar {
-        border-radius: 10px;
-        transition: width 0.5s ease;
-    }
-    
-    @keyframes fadeInModal {
-        from {
-            opacity: 0;
-            transform: scale(0.9);
-        }
-        to {
-            opacity: 1;
-            transform: scale(1);
-        }
-    }
-    
-    .modal.fade .modal-dialog {
-        animation: fadeInModal 0.3s ease-out;
-    }
-    
-    .table td {
-        vertical-align: middle;
+    .pagination .page-item .page-link:hover:not(.active) {
+        background-color: #f0eaff;
+        color: #6f42c1;
+        transform: translateY(-2px);
+        transition: all 0.2s ease;
     }
 </style>
 @endpush

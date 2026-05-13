@@ -5,7 +5,7 @@
 @section('content')
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="text-white mb-0">
+            <h3 class="mb-0">
 
                 <i class="fas fa-star me-2"></i>
 

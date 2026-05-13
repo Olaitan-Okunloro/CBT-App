@@ -22,7 +22,7 @@
     {{-- FILTER --}}
     <div class="card shadow-sm mb-3">
 
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-primary">
             Filter Questions
         </div>
 
@@ -70,7 +70,7 @@
     {{-- TABLE --}}
     <div class="card shadow-sm">
 
-        <div class="card-header bg-dark text-white">
+        <div class="card-header bg-dark">
             Pending Questions
         </div>
 

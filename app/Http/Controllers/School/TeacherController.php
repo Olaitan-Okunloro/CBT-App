@@ -375,4 +375,62 @@ class TeacherController extends Controller
         return back()->with('success', 'Question deleted');
     }
 
+    public function showNotificationForm()
+    {
+        $teacher = auth()->user();
+        
+        // Get all students assigned to this teacher
+        $students = StudentDetail::where('teacher_id', $teacher->id)
+            ->with(['user', 'class'])
+            ->get();
+        
+        $studentsCount = $students->count();
+        
+        return view('teacher.notifications.create', compact('students', 'studentsCount'));
+    }
+
+    public function sendNotification(Request $request)
+    {
+        $request->validate([
+            'title' => 'required|string|max:255',
+            'message' => 'required|string',
+            'recipient_option' => 'required|in:all,selected',
+            'student_ids' => 'required_if:recipient_option,selected|array',
+            'student_ids.*' => 'exists:users,id',
+        ]);
+        
+        $teacher = auth()->user();
+        
+        // Determine which students to send to
+        if ($request->recipient_option === 'all') {
+            // Get all students assigned to this teacher
+            $students = StudentDetail::where('teacher_id', $teacher->id)->get();
+            $studentIds = $students->pluck('user_id')->toArray();
+        } else {
+            // Get selected students
+            $studentIds = $request->student_ids;
+        }
+        
+        if (empty($studentIds)) {
+            return redirect()->back()->with('error', 'No students selected to send notification.');
+        }
+        
+        $sentCount = 0;
+        
+        foreach ($studentIds as $studentId) {
+            Notification::create([
+                'title' => $request->title,
+                'message' => $request->message,
+                'sender_type' => 'teacher',
+                'sender_id' => $teacher->id,
+                'recipient_type' => 'specific',
+                'recipient_id' => $studentId,
+                'priority' => 'normal',
+            ]);
+            $sentCount++;
+        }
+        
+        return redirect()->route('teacher.dashboard')->with('success', "Notification sent to {$sentCount} student(s) successfully.");
+    }
+
 }

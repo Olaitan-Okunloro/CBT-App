@@ -118,7 +118,7 @@ class RegisteredUserController extends Controller
             SchoolDetail::create([
                 'user_id' => $user->id,
                 'school_id' => $school->id,
-                'has_paid' => true
+                'has_paid' => false
             ]);
         }
 

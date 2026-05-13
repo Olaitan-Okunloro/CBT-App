@@ -8,7 +8,7 @@
     {{-- FILTER CARD --}}
     <div class="card shadow-sm mb-3">
 
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-primary">
             Filter Question Bank
         </div>
 
@@ -114,7 +114,7 @@
     {{-- QUESTION TABLE --}}
     <div class="card shadow-sm">
 
-        <div class="card-header bg-dark text-white">
+        <div class="card-header">
 
             Question Bank
             ({{ $rows->total() }} questions)
@@ -299,7 +299,7 @@
 
         <div class="modal-content">
 
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header bg-primary">
 
                 <h5 class="modal-title">
 

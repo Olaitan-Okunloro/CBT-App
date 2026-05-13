@@ -35,9 +35,9 @@
 
         </div><br><br>
     
-        <div class="card-header bg-success text-white">
+        <div class="card-header bg-success text-white text-center">
             School Fees Payment
-        </div>
+        </div><br><br>
 
         <div class="card-body">
 
@@ -46,24 +46,26 @@
                   action="{{ route('student.school.fees.submit') }}">
                 @csrf
 
-                <div class="mb-3">
+                <div class="mb-3 text-success">
                     <label>Amount Paid</label>
 
                     <input type="number"
                            name="amount"
+                           placeholder="Enter the amount you paid"
                            class="form-control"
                            required>
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3 text-success">
                     <label>Reference / Teller No</label>
 
                     <input type="text"
                            name="reference_no"
+                           placeholder="Enter the reference number"
                            class="form-control">
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3 text-success">
                     <label>Payment Date</label>
 
                     <input type="date"
@@ -71,7 +73,7 @@
                            class="form-control">
                 </div>
 
-                <div class="mb-3">
+                <div class="mb-3 text-success">
                     <label>Upload Proof</label>
 
                     <input type="file"

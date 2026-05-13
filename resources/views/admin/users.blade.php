@@ -5,7 +5,7 @@
 @section('content')
 <div class="container">
 
-    <h3 class="mb-4 text-white">
+    <h3 class="mb-4">
         <i class="fas fa-users-cog me-2"></i>
         Users Management
     </h3>

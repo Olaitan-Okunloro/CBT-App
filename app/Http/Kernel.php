@@ -9,7 +9,7 @@ class Kernel extends HttpKernel
     /**
      * The application's route middleware aliases.
      */
-    protected $middlewareAliases = [
+    protected $routeMiddleware = [
 
         'auth' => \App\Http\Middleware\Authenticate::class,
 
@@ -23,5 +23,13 @@ class Kernel extends HttpKernel
 
         'ensure.external.class' => \App\Http\Middleware\EnsureExternalClassSelected::class,
 
+        'auth' =>
+        \App\Http\Middleware\Authenticate::class,
+
+        'student.access' =>
+        \App\Http\Middleware\EnsureStudentAccess::class,
+
     ];
+
+    
 }

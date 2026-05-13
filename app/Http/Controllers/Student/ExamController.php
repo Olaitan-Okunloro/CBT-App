@@ -21,6 +21,58 @@ class ExamController extends Controller
     // start exam
     public function start(Request $request, $examId)
     {
+        
+        $user = auth()->user();
+
+        $student = $user->studentDetail;
+
+        if (!$student) {
+
+            auth()->logout();
+
+            return redirect()->route('login');
+                }
+
+
+                // EXTERNAL STUDENT
+                if ($student->isExternal()) {
+
+                    if (
+                        !$student->has_paid ||
+
+                        !$student->payment_expiry ||
+
+                        now()->gt($student->payment_expiry)
+                    ) {
+
+                        auth()->logout();
+
+                        return redirect()
+                            ->route('login')
+                            ->with(
+                                'error',
+                                'Please subscribe to continue.'
+                            );
+                    }
+                }
+
+
+                // INTERNAL STUDENT
+                else {
+
+                    if (!$student->has_paid) {
+
+                        auth()->logout();
+
+                        return redirect()
+                            ->route('login')
+                            ->with(
+                                'error',
+                                'Your school has not activated your access.'
+                            );
+                    }
+                }
+
         $user = auth()->user();
 
         if (!$user) {
@@ -141,6 +193,57 @@ class ExamController extends Controller
 
     public function startPractice(Request $request)
     {
+
+    $user = auth()->user();
+
+        $student = $user->studentDetail;
+
+        if (!$student) {
+
+            auth()->logout();
+
+            return redirect()->route('login');
+        }
+
+
+        // EXTERNAL STUDENT
+        if ($student->isExternal()) {
+
+            if (
+                !$student->has_paid ||
+
+                !$student->payment_expiry ||
+
+                now()->gt($student->payment_expiry)
+            ) {
+
+                auth()->logout();
+
+                return redirect()
+                    ->route('login')
+                    ->with(
+                        'error',
+                        'Please subscribe to continue.'
+                    );
+            }
+        }
+
+
+        // INTERNAL STUDENT
+        else {
+
+            if (!$student->has_paid) {
+
+                auth()->logout();
+
+                return redirect()
+                    ->route('login')
+                    ->with(
+                        'error',
+                        'Your school has not activated your access.'
+                    );
+            }
+        }
         $user = auth()->user();
 
         $classId = $user->studentDetail?->class_id;
@@ -264,6 +367,58 @@ class ExamController extends Controller
     // available exams
     public function available()
     {
+
+    $user = auth()->user();
+
+        $student = $user->studentDetail;
+
+        if (!$student) {
+
+            auth()->logout();
+
+            return redirect()->route('login');
+        }
+
+
+        // EXTERNAL STUDENT
+        if ($student->isExternal()) {
+
+            if (
+                !$student->has_paid ||
+
+                !$student->payment_expiry ||
+
+                now()->gt($student->payment_expiry)
+            ) {
+
+                auth()->logout();
+
+                return redirect()
+                    ->route('login')
+                    ->with(
+                        'error',
+                        'Please subscribe to continue.'
+                    );
+            }
+        }
+
+
+        // INTERNAL STUDENT
+        else {
+
+            if (!$student->has_paid) {
+
+                auth()->logout();
+
+                return redirect()
+                    ->route('login')
+                    ->with(
+                        'error',
+                        'Your school has not activated your access.'
+                    );
+            }
+        }
+
         $user = auth()->user();
 
         if (!$user) {
@@ -290,30 +445,77 @@ class ExamController extends Controller
     // questions
     public function question(Request $request)
     {
-        $questions = session('exam_questions');
-        $index = session('current_index');
 
-        if (!$questions || !isset($questions[$index])) {
-            return redirect()->route('student.exam.submit.auto');
-        }
+    $user = auth()->user();
 
-        $questionId = $questions[$index];
+    $student = $user->studentDetail;
 
-        // 🔥 SOURCE CHECK
-        if (session('question_source') === 'question_bank') {
+    if (!$student) {
 
-        // EXTERNAL
-        $question = \App\Models\QuestionBank::with(
-            'options'
-        )->find($questionId);
+        auth()->logout();
 
-        } else {
+        return redirect()->route('login');
+    }
 
-            // INTERNAL
-            $question = \App\Models\Question::with(
-                'teacher_options'
+
+    // EXTERNAL STUDENT
+    if ($student->isExternal()) {
+
+            if (
+                !$student->has_paid ||
+
+                !$student->payment_expiry ||
+
+                now()->gt($student->payment_expiry)
+            ) {
+
+                auth()->logout();
+
+                return redirect()
+                    ->route('login')
+                    ->with(
+                        'error',
+                        'Please subscribe to continue.'
+                    );
+                }
+            } else { // INTERNAL STUDENT
+
+                if (!$student->has_paid) {
+
+                auth()->logout();
+
+                return redirect()
+                    ->route('login')
+                    ->with(
+                        'error',
+                        'Your school has not activated your access.'
+                    );
+                }
+            }
+            $questions = session('exam_questions');
+            $index = session('current_index');
+
+            if (!$questions || !isset($questions[$index])) {
+                return redirect()->route('student.exam.submit.auto');
+            }
+
+            $questionId = $questions[$index];
+
+            // 🔥 SOURCE CHECK
+            if (session('question_source') === 'question_bank') {
+
+            // EXTERNAL
+            $question = \App\Models\QuestionBank::with(
+                'options'
             )->find($questionId);
-        }
+
+            } else {
+
+                // INTERNAL
+                $question = \App\Models\Question::with(
+                    'teacher_options'
+                )->find($questionId);
+            }
 
         return view('student.exam.question', compact('question', 'index') );
     }

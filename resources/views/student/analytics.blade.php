@@ -2,7 +2,7 @@
 
 @section('content')
 
-<div class="container text-white">
+<div class="container ">
     <h3>📊 Performance Analytics</h3>
 
     <canvas id="chart"></canvas>

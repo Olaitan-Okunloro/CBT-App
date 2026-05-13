@@ -7,7 +7,7 @@
 
     <div class="card shadow-sm border-0">
 
-        <div class="card-header bg-success text-white">
+        <div class="card-header bg-success">
             <i class="fas fa-cog me-2"></i>Settings
         </div>
 

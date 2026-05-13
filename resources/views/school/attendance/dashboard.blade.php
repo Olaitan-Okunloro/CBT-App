@@ -7,28 +7,28 @@
     <div class="row mb-4">
 
     <div class="col-md-3">
-    <div class="card bg-primary text-white p-3">
+    <div class="card bg-primary p-3">
     <h4>Total Students</h4>
     <h2>{{ $total }}</h2>
     </div>
     </div>
 
     <div class="col-md-3">
-    <div class="card bg-success text-white p-3">
+    <div class="card bg-success p-3">
     <h4>Present</h4>
     <h2>{{ $present }}</h2>
     </div>
     </div>
 
         <div class="col-md-3">
-            <div class="card bg-warning text-white p-3">
+            <div class="card bg-warning p-3">
                 <h4>Late</h4>
                 <h2>{{ $late }}</h2>
             </div>
         </div>
 
         <div class="col-md-3">
-            <div class="card bg-danger text-white p-3">
+            <div class="card bg-danger p-3">
                 <h4>Absent</h4>
                 <h2>{{ $absent }}</h2>
             </div>

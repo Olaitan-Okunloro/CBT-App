@@ -8,8 +8,8 @@
     <div class="row justify-content-center">
         <div class="col-md-10">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h4 class="mb-0">
+                <div class="card-header bg-primary d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0 text-white">
                         <i class="fas fa-layer-group me-2"></i>Assigned Classes
                     </h4>
                     <a href="{{ route('classes.create') }}" class="btn btn-light">

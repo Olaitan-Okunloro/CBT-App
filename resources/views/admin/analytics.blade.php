@@ -24,7 +24,7 @@
 
 <div class="container">
 
-    <h3 class="mb-4 text-white">
+    <h3 class="mb-4">
         <i class="fas fa-chart-line me-2"></i>
         Admin Analytics
     </h3>
@@ -36,7 +36,7 @@
 
             <div class="card shadow-sm border-0">
 
-                <div class="card-header bg-success text-white">
+                <div class="card-header bg-success">
                     Monthly Total Revenue
                 </div>
 
@@ -53,7 +53,7 @@
 
             <div class="card shadow-sm border-0">
 
-                <div class="card-header bg-danger text-white">
+                <div class="card-header bg-danger">
                     Monthly Withdrawals Paid
                 </div>
 

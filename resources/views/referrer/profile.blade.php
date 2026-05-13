@@ -7,7 +7,7 @@
 
     <div class="card shadow-sm border-0">
 
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-primary">
             <i class="fas fa-user-shield me-2"></i>
             Referrer Profile
         </div>
@@ -77,7 +77,7 @@
 <div class="modal fade" id="cameraModal" tabindex="-1" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
+            <div class="modal-header bg-primary">
                 <h5 class="modal-title">
                     <i class="fas fa-camera me-2"></i>Take a Photo
                 </h5>

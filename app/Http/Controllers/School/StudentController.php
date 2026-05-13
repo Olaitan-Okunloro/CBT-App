@@ -23,35 +23,35 @@ use Illuminate\Support\Str;
 class StudentController extends Controller
 {
     public function dashboard()
-{
-    $user = auth()->user();
+    {
+        $user = auth()->user();
 
-    $attempts = ExamAttempt::where('user_id', $user->id)->get();
-    
-    // Ensure total_marks is not zero for any attempt
-    foreach ($attempts as $attempt) {
-        if ($attempt->total_marks <= 0) {
-            $attempt->total_marks = 1; // Set default to prevent division by zero
-        }
+        // Get paginated attempts (5 per page)
+        $attempts = ExamAttempt::where('user_id', $user->id)
+            ->with('exam.subject')
+            ->orderBy('created_at', 'desc')
+            ->paginate(5);
+
+        // Get all attempts for stats (not paginated)
+        $allAttempts = ExamAttempt::where('user_id', $user->id)->get();
+
+        $subjectStats = ExamAttempt::with('exam.subject')
+            ->where('user_id', $user->id)
+            ->get()
+            ->groupBy('exam.subject.name');
+
+        $totalExams = $allAttempts->count();
+        $averageScore = $allAttempts->avg('score');
+        $highestScore = $allAttempts->max('score');
+
+        return view('dashboard.student', compact(
+            'totalExams',
+            'averageScore',
+            'highestScore',
+            'attempts',      // This is now paginated
+            'subjectStats'
+        ));
     }
-
-    $subjectStats = ExamAttempt::with('exam.subject')
-        ->where('user_id', $user->id)
-        ->get()
-        ->groupBy('exam.subject.name');
-
-    $totalExams = $attempts->count();
-    $averageScore = $attempts->avg('score');
-    $highestScore = $attempts->max('score');
-
-    return view('dashboard.student', compact(
-        'totalExams',
-        'averageScore',
-        'highestScore',
-        'attempts',
-        'subjectStats'
-    ));
-}
     
     // Show form
     public function create()

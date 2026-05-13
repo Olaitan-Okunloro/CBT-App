@@ -7,7 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 class Subscription extends Model
 {
     protected $fillable = [
-        'main_sub',
-        'email_sub'
+        'sub_amount',
+        'email_sub',
+        'duration_months'
     ];
 }

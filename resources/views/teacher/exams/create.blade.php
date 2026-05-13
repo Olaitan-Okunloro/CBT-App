@@ -39,7 +39,7 @@
                                                 <input type="text" 
                                                        name="exams[0][title]" 
                                                        class="form-control" 
-                                                       placeholder="e.g., First Term Examination"
+                                                       placeholder="e.g., CBT Practice or First Term Examination if it real exam"
                                                        required>
                                             </div>
                                         </div>

@@ -8,8 +8,8 @@
     <div class="row justify-content-center">
         <div class="col-md-10">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">
+                <div class="card-header bg-primary">
+                    <h4 class="mb-0 text-white">
                         <i class="fas fa-school me-2"></i>Assign Classes to School
                     </h4>
                 </div>
@@ -33,7 +33,7 @@
                                         <div class="col-md-12 mb-3">
                                             <label class="form-label fw-bold">Select Class <span class="text-danger">*</span></label>
                                             <div class="input-group">
-                                                <span class="input-group-text bg-info text-white">
+                                                <span class="input-group-text bg-info">
                                                     <i class="fas fa-users"></i>
                                                 </span>
                                                 <select name="classes[0][class_level_id]" class="form-select" required>
@@ -126,7 +126,7 @@ function addClass() {
                 <div class="col-md-12 mb-3">
                     <label class="form-label fw-bold">Select Class <span class="text-danger">*</span></label>
                     <div class="input-group">
-                        <span class="input-group-text bg-info text-white">
+                        <span class="input-group-text bg-info">
                             <i class="fas fa-users"></i>
                         </span>
                         <select name="classes[${index}][class_level_id]" class="form-select" required>

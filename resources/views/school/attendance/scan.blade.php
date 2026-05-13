@@ -7,7 +7,7 @@
     <div class="row justify-content-center">
         <div class="col-md-6">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
+                <div class="card-header bg-primary">
                     <h4>
                         <i class="fas fa-qrcode me-2"></i>Scan Attendance
                     </h4>
